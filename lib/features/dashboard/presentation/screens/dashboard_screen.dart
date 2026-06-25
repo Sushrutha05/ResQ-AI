@@ -270,7 +270,9 @@ class DashboardScreen extends ConsumerWidget {
                   style: TextStyle(fontSize: 13, height: 1.4),
                 ),
                 const SizedBox(height: 12),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -283,7 +285,6 @@ class DashboardScreen extends ConsumerWidget {
                         style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.bold),
                       ),
                     ),
-                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -393,20 +394,33 @@ class DashboardScreen extends ConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Row(
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 6,
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Icon(Icons.calendar_today, size: 14, color: theme.colorScheme.onSurfaceVariant),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Deadline: ${task['deadline']}',
-                          style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.calendar_today, size: 14, color: theme.colorScheme.onSurfaceVariant),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Deadline: ${task['deadline']}',
+                              style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+                            ),
+                          ],
                         ),
-                        const Spacer(),
-                        Icon(Icons.hourglass_empty, size: 14, color: theme.colorScheme.onSurfaceVariant),
-                        const SizedBox(width: 6),
-                        Text(
-                          task['duration'],
-                          style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.hourglass_empty, size: 14, color: theme.colorScheme.onSurfaceVariant),
+                            const SizedBox(width: 6),
+                            Text(
+                              task['duration'],
+                              style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+                            ),
+                          ],
                         ),
                       ],
                     ),

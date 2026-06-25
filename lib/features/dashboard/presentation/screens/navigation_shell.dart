@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:resq_ai/features/tasks/presentation/screens/tasks_screen.dart';
 import 'dashboard_screen.dart';
 import 'placeholder_screens.dart';
 
@@ -68,8 +69,12 @@ class _NavigationShellState extends State<NavigationShell> {
               labelType: NavigationRailLabelType.all,
               backgroundColor: theme.colorScheme.surfaceContainerLow,
               indicatorColor: theme.colorScheme.primaryContainer,
-              selectedIconTheme: IconThemeData(color: theme.colorScheme.onPrimaryContainer),
-              unselectedIconTheme: IconThemeData(color: theme.colorScheme.onSurfaceVariant),
+              selectedIconTheme: IconThemeData(
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+              unselectedIconTheme: IconThemeData(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
               selectedLabelTextStyle: TextStyle(
                 color: theme.colorScheme.primary,
                 fontWeight: FontWeight.bold,
@@ -79,15 +84,16 @@ class _NavigationShellState extends State<NavigationShell> {
                 color: theme.colorScheme.onSurfaceVariant,
                 fontSize: 12,
               ),
-              destinations: _destinations
-                  .map(
-                    (d) => NavigationRailDestination(
-                      icon: d.icon,
-                      selectedIcon: d.selectedIcon,
-                      label: Text(d.label),
-                    ),
-                  )
-                  .toList(),
+              destinations:
+                  _destinations
+                      .map(
+                        (d) => NavigationRailDestination(
+                          icon: d.icon,
+                          selectedIcon: d.selectedIcon,
+                          label: Text(d.label),
+                        ),
+                      )
+                      .toList(),
             ),
           Expanded(
             child: AnimatedSwitcher(
@@ -100,19 +106,20 @@ class _NavigationShellState extends State<NavigationShell> {
           ),
         ],
       ),
-      bottomNavigationBar: !isLargeScreen
-          ? NavigationBar(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: (index) {
-                setState(() {
-                  _selectedIndex = index;
-                });
-              },
-              backgroundColor: theme.colorScheme.surfaceContainerLow,
-              indicatorColor: theme.colorScheme.primaryContainer,
-              destinations: _destinations,
-            )
-          : null,
+      bottomNavigationBar:
+          !isLargeScreen
+              ? NavigationBar(
+                selectedIndex: _selectedIndex,
+                onDestinationSelected: (index) {
+                  setState(() {
+                    _selectedIndex = index;
+                  });
+                },
+                backgroundColor: theme.colorScheme.surfaceContainerLow,
+                indicatorColor: theme.colorScheme.primaryContainer,
+                destinations: _destinations,
+              )
+              : null,
     );
   }
 }
