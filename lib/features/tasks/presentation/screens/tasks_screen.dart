@@ -28,7 +28,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final theme = Theme.of(context);
-            
+
             return Padding(
               padding: EdgeInsets.only(
                 left: 20,
@@ -45,7 +45,10 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                     children: [
                       Text(
                         'Subtasks for "${task.title}"',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close),
@@ -68,25 +71,37 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                         title: Text(
                           subtask.title,
                           style: TextStyle(
-                            decoration: subtask.isCompleted ? TextDecoration.lineThrough : null,
-                            color: subtask.isCompleted ? theme.colorScheme.onSurfaceVariant : null,
+                            decoration:
+                                subtask.isCompleted
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                            color:
+                                subtask.isCompleted
+                                    ? theme.colorScheme.onSurfaceVariant
+                                    : null,
                           ),
                         ),
                         controlAffinity: ListTileControlAffinity.leading,
                         onChanged: (val) {
                           if (val == null) return;
-                          
+
                           // Update locally for instant feedback in modal
                           setModalState(() {
-                            final updatedSubtasks = List<SubtaskEntity>.from(task.subtasks);
-                            updatedSubtasks[idx] = subtask.copyWith(isCompleted: val);
-                            
+                            final updatedSubtasks = List<SubtaskEntity>.from(
+                              task.subtasks,
+                            );
+                            updatedSubtasks[idx] = subtask.copyWith(
+                              isCompleted: val,
+                            );
+
                             // Save to Firestore
                             final updatedTask = task.copyWith(
                               subtasks: updatedSubtasks,
                               updatedAt: DateTime.now(),
                             );
-                            ref.read(taskControllerProvider.notifier).updateTask(updatedTask);
+                            ref
+                                .read(taskControllerProvider.notifier)
+                                .updateTask(updatedTask);
                           });
                         },
                       );
@@ -122,23 +137,23 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     try {
       final riskAgent = ref.read(riskAgentProvider);
       final assessment = await riskAgent.assessTaskRisk(task);
-      
+
       final updatedTask = task.copyWith(
         riskScore: assessment.score,
         riskExplanation: assessment.explanation,
       );
-      
+
       await ref.read(taskControllerProvider.notifier).updateTask(updatedTask);
-      
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Risk assessed: ${assessment.score}%')),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error assessing risk: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error assessing risk: $e')));
     } finally {
       if (mounted) setState(() => _assessingRiskId = null);
     }
@@ -172,13 +187,17 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
         children: [
           // Filter Chips
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
+            child: Wrap(
+              spacing: 8,
               children: [
                 _buildFilterChip('All'),
-                const SizedBox(width: 8),
                 _buildFilterChip('Pending'),
-                const SizedBox(width: 8),
+                _buildFilterChip('In Progress'),
+                _buildFilterChip('Delayed'),
                 _buildFilterChip('Completed'),
               ],
             ),
@@ -189,10 +208,11 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
           Expanded(
             child: tasksStream.when(
               data: (tasks) {
-                final filteredTasks = tasks.where((t) {
-                  if (_statusFilter == 'All') return true;
-                  return t.status == _statusFilter;
-                }).toList();
+                final filteredTasks =
+                    tasks.where((t) {
+                      if (_statusFilter == 'All') return true;
+                      return t.status == _statusFilter;
+                    }).toList();
 
                 if (filteredTasks.isEmpty) {
                   return Center(
@@ -204,12 +224,17 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                           Icon(
                             Icons.task_alt,
                             size: 64,
-                            color: theme.colorScheme.onSurfaceVariant.withAlpha(100),
+                            color: theme.colorScheme.onSurfaceVariant.withAlpha(
+                              100,
+                            ),
                           ),
                           const SizedBox(height: 16),
                           const Text(
                             'No tasks found',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Text(
@@ -217,7 +242,9 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                                 ? "Let's create your first task by tapping the + button!"
                                 : "No tasks match your selected filter.",
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ],
                       ),
@@ -226,7 +253,10 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                 }
 
                 return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   itemCount: filteredTasks.length,
                   itemBuilder: (context, index) {
                     final task = filteredTasks[index];
@@ -240,7 +270,10 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12.0,
+                          vertical: 12.0,
+                        ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -248,7 +281,9 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                               value: isCompleted,
                               onChanged: (val) {
                                 if (val != null) {
-                                  ref.read(taskControllerProvider.notifier).updateTask(
+                                  ref
+                                      .read(taskControllerProvider.notifier)
+                                      .updateTask(
                                         task.copyWith(
                                           status: val ? 'Completed' : 'Pending',
                                           progress: val ? 100 : 0,
@@ -267,8 +302,16 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
-                                      decoration: isCompleted ? TextDecoration.lineThrough : null,
-                                      color: isCompleted ? theme.colorScheme.onSurfaceVariant : null,
+                                      decoration:
+                                          isCompleted
+                                              ? TextDecoration.lineThrough
+                                              : null,
+                                      color:
+                                          isCompleted
+                                              ? theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant
+                                              : null,
                                     ),
                                   ),
                                   if (task.description.isNotEmpty) ...[
@@ -279,20 +322,27 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                         fontSize: 13,
-                                        color: theme.colorScheme.onSurfaceVariant,
+                                        color:
+                                            theme.colorScheme.onSurfaceVariant,
                                       ),
                                     ),
                                   ],
                                   Wrap(
                                     spacing: 12,
                                     runSpacing: 4,
-                                    crossAxisAlignment: WrapCrossAlignment.center,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: priorityColor.withAlpha(30),
-                                          borderRadius: BorderRadius.circular(6),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
                                         ),
                                         child: Text(
                                           task.priority,
@@ -307,42 +357,64 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                                         Tooltip(
                                           message: task.riskExplanation ?? '',
                                           child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
                                             decoration: BoxDecoration(
-                                              color: _getRiskColor(task.riskScore!).withAlpha(30),
-                                              borderRadius: BorderRadius.circular(6),
+                                              color: _getRiskColor(
+                                                task.riskScore!,
+                                              ).withAlpha(30),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
                                             ),
                                             child: Text(
                                               'Risk: ${task.riskScore}%',
                                               style: TextStyle(
                                                 fontSize: 11,
-                                                color: _getRiskColor(task.riskScore!),
+                                                color: _getRiskColor(
+                                                  task.riskScore!,
+                                                ),
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
                                           ),
                                         ),
                                       ],
-                                      if (task.subtasks != null && task.subtasks!.isNotEmpty) ...[
+                                      if (task.subtasks != null &&
+                                          task.subtasks!.isNotEmpty) ...[
                                         InkWell(
-                                          onTap: () => _showSubtasksSheet(context, task),
-                                          borderRadius: BorderRadius.circular(4),
+                                          onTap:
+                                              () => _showSubtasksSheet(
+                                                context,
+                                                task,
+                                              ),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
                                           child: Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                              vertical: 2,
+                                            ),
                                             child: Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 Icon(
                                                   Icons.format_list_bulleted,
                                                   size: 13,
-                                                  color: theme.colorScheme.primary,
+                                                  color:
+                                                      theme.colorScheme.primary,
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Text(
                                                   '${task.subtasks!.length} subtasks',
                                                   style: TextStyle(
                                                     fontSize: 11,
-                                                    color: theme.colorScheme.primary,
+                                                    color:
+                                                        theme
+                                                            .colorScheme
+                                                            .primary,
                                                     fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
@@ -357,14 +429,23 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                                           Icon(
                                             Icons.calendar_today,
                                             size: 13,
-                                            color: theme.colorScheme.onSurfaceVariant,
+                                            color:
+                                                theme
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
-                                            task.deadline.toLocal().toString().substring(0, 16),
+                                            task.deadline
+                                                .toLocal()
+                                                .toString()
+                                                .substring(0, 16),
                                             style: TextStyle(
                                               fontSize: 11,
-                                              color: theme.colorScheme.onSurfaceVariant,
+                                              color:
+                                                  theme
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
                                             ),
                                           ),
                                         ],
@@ -375,12 +456,21 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                               ),
                             ),
                             _assessingRiskId == task.taskId
-                              ? const Padding(
+                                ? const Padding(
                                   padding: EdgeInsets.all(12.0),
-                                  child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
                                 )
-                              : IconButton(
-                                  icon: const Icon(Icons.analytics_outlined, color: Colors.purple),
+                                : IconButton(
+                                  icon: const Icon(
+                                    Icons.analytics_outlined,
+                                    color: Colors.purple,
+                                  ),
                                   tooltip: 'Assess Risk',
                                   onPressed: () => _assessRisk(task),
                                 ),
@@ -388,18 +478,41 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                               icon: const Icon(Icons.more_vert),
                               onSelected: (value) {
                                 if (value == 'edit') _showFormSheet(task);
-                                if (value == 'delete') _confirmDelete(task.taskId);
+                                if (value == 'delete')
+                                  _confirmDelete(task.taskId);
                               },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(
-                                  value: 'edit',
-                                  child: Row(children: [Icon(Icons.edit_outlined, size: 20), SizedBox(width: 8), Text('Edit')]),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(children: [Icon(Icons.delete_outline, size: 20, color: Colors.redAccent), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.redAccent))]),
-                                ),
-                              ],
+                              itemBuilder:
+                                  (context) => [
+                                    const PopupMenuItem(
+                                      value: 'edit',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.edit_outlined, size: 20),
+                                          SizedBox(width: 8),
+                                          Text('Edit'),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.delete_outline,
+                                            size: 20,
+                                            color: Colors.redAccent,
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Delete',
+                                            style: TextStyle(
+                                              color: Colors.redAccent,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                             ),
                           ],
                         ),
@@ -408,12 +521,10 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                   },
                 );
               },
-              error: (err, stack) => Center(
-                child: Text('Error loading tasks: $err'),
-              ),
-              loading: () => const Center(
-                child: CircularProgressIndicator(),
-              ),
+              error:
+                  (err, stack) =>
+                      Center(child: Text('Error loading tasks: $err')),
+              loading: () => const Center(child: CircularProgressIndicator()),
             ),
           ),
         ],
@@ -444,24 +555,25 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
   void _confirmDelete(String taskId) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Task'),
-        content: const Text('Are you sure you want to delete this task?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Task'),
+            content: const Text('Are you sure you want to delete this task?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                onPressed: () {
+                  ref.read(taskControllerProvider.notifier).deleteTask(taskId);
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            onPressed: () {
-              ref.read(taskControllerProvider.notifier).deleteTask(taskId);
-              Navigator.of(context).pop();
-            },
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
     );
   }
 }

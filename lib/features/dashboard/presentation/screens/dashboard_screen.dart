@@ -1,16 +1,18 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:resq_ai/features/tasks/domain/entities/task_entity.dart';
 import 'package:resq_ai/features/tasks/presentation/providers/task_providers.dart';
 import '../../../authentication/presentation/providers/auth_provider.dart';
-import '../../tasks/presentation/providers/task_providers.dart';
 import 'package:resq_ai/ai/scheduler/scheduler_provider.dart';
 import 'package:resq_ai/ai/scheduler/scheduler_models.dart';
 import '../widgets/rescue_bottom_sheet.dart';
 import 'navigation_shell.dart';
 
 final recommendationDismissedProvider = StateProvider<bool>((ref) => false);
+final isRescueModeActiveProvider = StateProvider<bool>((ref) => false);
+final rescueUndoStateProvider = StateProvider<List<TaskEntity>>((ref) => []);
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -81,9 +83,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
               const SizedBox(height: 12),
 
-              // RESCUE BANNER (If score < 40%)
-              if (_calculateSuccessScore(tasks) <= 0.40)
-                _buildRescueBanner(context, tasks),
+              // RESCUE BANNER (If score < 40% or if Rescue Mode is Active)
+              if (_calculateSuccessScore(tasks) <= 0.40 || ref.watch(isRescueModeActiveProvider))
+                _buildRescueBanner(context, tasks, ref),
 
               // 2. Success Score Card
               _buildSuccessScoreCard(context, tasks),
@@ -108,12 +110,79 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  void _showUndoConfirmation(BuildContext context, WidgetRef ref) {
+    int timeLeft = 5;
+    Timer? timer;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            timer ??= Timer.periodic(const Duration(seconds: 1), (t) {
+              if (timeLeft > 0) {
+                setState(() => timeLeft--);
+              } else {
+                t.cancel();
+              }
+            });
+
+            return AlertDialog(
+              title: const Text('Undo Rescue Mode?'),
+              content: const Text(
+                'Are you sure you want to revert your schedule back to a critical state? '
+                'The delayed tasks will be brought back to their original deadlines.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    timer?.cancel();
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: timeLeft > 0
+                      ? null
+                      : () async {
+                          final originalTasks = ref.read(rescueUndoStateProvider);
+                          final tasksNotifier = ref.read(taskControllerProvider.notifier);
+                          for (final task in originalTasks) {
+                            await tasksNotifier.updateTask(task);
+                          }
+                          ref.read(isRescueModeActiveProvider.notifier).state = false;
+                          ref.read(rescueUndoStateProvider.notifier).state = [];
+                          
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Rescue Mode undone. Schedule critical.')),
+                            );
+                          }
+                        },
+                  child: Text(timeLeft > 0 ? 'Confirm ($timeLeft)' : 'Confirm'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    ).then((_) => timer?.cancel());
+  }
+
   double _calculateSuccessScore(List<TaskEntity> tasks) {
     if (tasks.isEmpty) return 1.0;
+
+    int totalTasks = tasks.where((t) => t.status != 'Delayed').length;
+    if (totalTasks == 0) return 1.0;
     
-    int totalTasks = tasks.length;
     int completed = tasks.where((t) => t.status == 'Completed').length;
-    int highRisk = tasks.where((t) => (t.riskScore ?? 0) > 60).length;
+    int highRisk = tasks.where((t) => (t.riskScore ?? 0) > 60 && t.status != 'Delayed' && t.status != 'Completed').length;
 
     double completionFactor = completed / totalTasks;
     double riskPenalty = (highRisk / totalTasks) * 0.4; // up to 40% penalty
@@ -124,17 +193,73 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return score;
   }
 
-  Widget _buildRescueBanner(BuildContext context, List<TaskEntity> tasks) {
+  Widget _buildRescueBanner(BuildContext context, List<TaskEntity> tasks, WidgetRef ref) {
+    final isRescueActive = ref.watch(isRescueModeActiveProvider);
+
+    if (isRescueActive) {
+      return Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 24),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.green.shade600,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.green.withAlpha(80),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.shield_rounded, color: Colors.white, size: 32),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '🛡️ SCHEDULE STABILIZED',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Rescue Mode active. Focus only on your pending tasks today.',
+                    style: TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.undo_rounded, color: Colors.white),
+              tooltip: 'Undo Rescue Mode',
+              onPressed: () => _showUndoConfirmation(context, ref),
+            ),
+          ],
+        ),
+      );
+    }
+
     return GestureDetector(
       onTap: () {
         showModalBottomSheet(
           context: context,
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
-          builder: (ctx) => Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-            child: RescueBottomSheet(tasks: tasks),
-          ),
+          builder:
+              (ctx) => Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                ),
+                child: RescueBottomSheet(tasks: tasks),
+              ),
         );
       },
       child: Container(
@@ -152,16 +277,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
           ],
         ),
-        child: Row(
+        child: const Row(
           children: [
-            const Icon(Icons.warning_rounded, color: Colors.white, size: 32),
-            const SizedBox(width: 16),
-            const Expanded(
+            Icon(Icons.warning_rounded, color: Colors.white, size: 32),
+            SizedBox(width: 16),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '🚨 RESCUE MODE ACTIVATED',
+                    '🚨 RESCUE MODE REQUIRED',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -172,15 +297,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   SizedBox(height: 4),
                   Text(
                     'Schedule critical. Tap to initiate emergency recovery plan.',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: Colors.white, fontSize: 13),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+            Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
           ],
         ),
       ),
@@ -393,7 +515,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     List<TaskEntity> tasks,
   ) {
     final theme = Theme.of(context);
-    final pendingTasks = tasks.where((t) => t.status != 'Completed').toList();
+    final pendingTasks = tasks.where((t) => t.status != 'Completed' && t.status != 'Delayed').toList();
     final highRiskCount =
         pendingTasks.where((t) => (t.riskScore ?? 0) > 60).length;
 

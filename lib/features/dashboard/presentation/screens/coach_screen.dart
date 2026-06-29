@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:resq_ai/ai/coach/coach_agent.dart';
 import 'package:resq_ai/ai/coach/coach_models.dart';
 import 'package:resq_ai/ai/coach/coach_provider.dart';
 import 'package:resq_ai/features/tasks/presentation/providers/task_providers.dart';
@@ -34,7 +33,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
       final tasks = ref.read(userTasksStreamProvider).value ?? [];
       final coachAgent = ref.read(coachAgentProvider);
       final briefing = await coachAgent.generateDailyBriefing(tasks);
-      
+
       if (mounted) {
         setState(() {
           _briefing = briefing;
@@ -70,27 +69,30 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
         ],
       ),
       body: SafeArea(
-        child: _isLoading
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Coach is analyzing your workload...',
-                      style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-              )
-            : _briefing == null
+        child:
+            _isLoading
                 ? Center(
-                    child: ElevatedButton(
-                      onPressed: _fetchBriefing,
-                      child: const Text('Get Daily Briefing'),
-                    ),
-                  )
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Coach is analyzing your workload...',
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+                : _briefing == null
+                ? Center(
+                  child: ElevatedButton(
+                    onPressed: _fetchBriefing,
+                    child: const Text('Get Daily Briefing'),
+                  ),
+                )
                 : _buildBriefingView(context, _briefing!),
       ),
     );
@@ -137,9 +139,7 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
           const SizedBox(height: 12),
           Text(
             briefing.motivationText,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              height: 1.5,
-            ),
+            style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
           ),
           const SizedBox(height: 32),
           Card(

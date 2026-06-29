@@ -5,6 +5,7 @@ import 'package:resq_ai/ai/rescue/rescue_models.dart';
 import 'package:resq_ai/ai/rescue/rescue_provider.dart';
 import 'package:resq_ai/features/tasks/domain/entities/task_entity.dart';
 import 'package:resq_ai/features/tasks/presentation/providers/task_providers.dart';
+import '../screens/dashboard_screen.dart';
 
 class RescueBottomSheet extends ConsumerStatefulWidget {
   final List<TaskEntity> tasks;
@@ -58,17 +59,41 @@ class _RescueBottomSheetState extends ConsumerState<RescueBottomSheet> {
       
       // Delay the dropped tasks by pushing their deadline 1 day, or we can just mark them as delayed somehow.
       // For simplicity, let's add 24 hours to the deadlines of dropped tasks.
+      final originalTasks = <TaskEntity>[];
+
       for (var id in _plan!.dropTaskIds) {
-        final task = widget.tasks.firstWhere((t) => t.taskId == id);
+        final task = widget.tasks.firstWhere(
+          (t) => t.taskId == id.trim(),
+          orElse: () => TaskEntity(
+            taskId: 'unknown',
+            userId: 'unknown',
+            title: 'Unknown Task',
+            deadline: DateTime.now(),
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+            status: 'Pending',
+          ),
+        );
+
+        if (task.taskId == 'unknown') continue;
+
+        originalTasks.add(task);
+
         final newDeadline = task.deadline.add(const Duration(days: 1));
         
         final updatedTask = task.copyWith(
           deadline: newDeadline,
           status: 'Delayed',
+          riskScore: null,
+          riskExplanation: 'Delayed by Rescue Plan. Pending recalculation.',
         );
         
         await tasksNotifier.updateTask(updatedTask);
       }
+
+      // Activate Rescue Mode flag for the Dashboard
+      ref.read(rescueUndoStateProvider.notifier).state = originalTasks;
+      ref.read(isRescueModeActiveProvider.notifier).state = true;
 
       if (mounted) {
         Navigator.pop(context);
