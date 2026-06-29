@@ -65,30 +65,28 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       appBar: AppBar(
         title: const Text('AI Scheduler'),
         actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 10.0),
-            child: FilledButton.tonalIcon(
-              icon: const Icon(Icons.sync, size: 18),
-              label: const Text('Sync Calendar'),
-              onPressed: () async {
-                try {
-                  await ref.read(googleSignInProvider).signIn();
-                  ref.invalidate(todayCalendarEventsProvider);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Google Calendar Synced Successfully!')),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Calendar Sync Failed: $e')),
-                    );
-                  }
+          IconButton(
+            icon: const Icon(Icons.sync),
+            tooltip: 'Sync Calendar',
+            onPressed: () async {
+              try {
+                await ref.read(googleSignInProvider).signIn();
+                ref.invalidate(todayCalendarEventsProvider);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Google Calendar Synced Successfully!')),
+                  );
                 }
-              },
-            ),
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Calendar Sync Failed: $e')),
+                  );
+                }
+              }
+            },
           ),
+
           if (schedule.isNotEmpty && !_isGenerating)
             IconButton(
               icon: const Icon(Icons.refresh),

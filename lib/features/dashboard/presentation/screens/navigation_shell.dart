@@ -66,7 +66,8 @@ class _NavigationShellState extends ConsumerState<NavigationShell> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final width = MediaQuery.of(context).size.width;
-    final isLargeScreen = width >= 600;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final isLargeScreen = width >= 600 || isLandscape;
     
     final selectedIndex = ref.watch(navigationIndexProvider);
 
@@ -79,7 +80,9 @@ class _NavigationShellState extends ConsumerState<NavigationShell> {
               onDestinationSelected: (index) {
                 ref.read(navigationIndexProvider.notifier).setIndex(index);
               },
-              labelType: NavigationRailLabelType.all,
+              labelType: MediaQuery.of(context).size.height < 500 
+                  ? NavigationRailLabelType.selected 
+                  : NavigationRailLabelType.all,
               backgroundColor: theme.colorScheme.surfaceContainerLow,
               indicatorColor: theme.brightness == Brightness.light 
                   ? const Color(0xFF22C7F2).withOpacity(0.2) 

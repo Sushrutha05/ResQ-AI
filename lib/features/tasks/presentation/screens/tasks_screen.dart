@@ -187,23 +187,24 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Filter Chips
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0,
-            ),
-            child: Wrap(
-              spacing: 8,
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
               children: [
                 _buildFilterChip('All'),
+                const SizedBox(width: 8),
                 _buildFilterChip('Pending'),
+                const SizedBox(width: 8),
                 _buildFilterChip('In Progress'),
+                const SizedBox(width: 8),
                 _buildFilterChip('Delayed'),
+                const SizedBox(width: 8),
                 _buildFilterChip('Completed'),
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
 
           // Tasks Stream list
           Expanded(
