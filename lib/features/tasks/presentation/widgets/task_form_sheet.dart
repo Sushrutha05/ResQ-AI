@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:resq_ai/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:resq_ai/features/tasks/domain/entities/task_entity.dart';
 import 'package:resq_ai/features/tasks/presentation/providers/task_providers.dart';
+import 'package:resq_ai/ai/planner/planner_provider.dart';
 
 class TaskFormSheet extends ConsumerStatefulWidget {
   final TaskEntity? task;
@@ -17,9 +18,13 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
+  late TextEditingController _magicController;
   late DateTime _selectedDeadline;
   late String _priority;
   late int _estimatedDuration;
+  bool _isGenerating = false;
+  bool _isBreakingDown = false;
+  List<String> _subtasks = [];
 
   final List<String> _priorities = ['Low', 'Medium', 'High'];
   final List<int> _durationOptions = [15, 30, 45, 60, 90, 120, 180, 240, 300, 360];
@@ -30,15 +35,18 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
     final t = widget.task;
     _titleController = TextEditingController(text: t?.title ?? '');
     _descriptionController = TextEditingController(text: t?.description ?? '');
+    _magicController = TextEditingController();
     _selectedDeadline = t?.deadline ?? DateTime.now().add(const Duration(hours: 4));
     _priority = t?.priority ?? 'Medium';
     _estimatedDuration = t?.estimatedDuration ?? 60;
+    _subtasks = List.from(t?.subtasks ?? []);
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _magicController.dispose();
     super.dispose();
   }
 
@@ -96,6 +104,7 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
       actualDuration: widget.task?.actualDuration ?? 0,
       progress: widget.task?.progress ?? 0,
       createdBy: widget.task?.createdBy ?? 'user',
+      subtasks: _subtasks,
       createdAt: widget.task?.createdAt ?? now,
       updatedAt: now,
     );
@@ -119,8 +128,140 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
         SnackBar(content: Text('Failed to save task: ${controllerState.error}')),
       );
     } else {
-      debugPrint('TaskFormSheet: Dismissing bottom sheet...');
       navigator.pop();
+    }
+  }
+
+  Future<void> _magicGenerate() async {
+    final input = _magicController.text.trim();
+    if (input.isEmpty) return;
+
+    setState(() => _isGenerating = true);
+
+    try {
+      final plannerAgent = ref.read(plannerAgentProvider);
+      final parsedTasks = await plannerAgent.parseNaturalLanguageTask(input);
+      
+      if (!mounted) return;
+      if (parsedTasks.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No tasks identified.')),
+        );
+        return;
+      }
+
+      if (parsedTasks.length == 1) {
+        final parsedTask = parsedTasks.first;
+        setState(() {
+          _titleController.text = parsedTask.title;
+          if (parsedTask.deadline != null) {
+            _selectedDeadline = parsedTask.deadline!;
+          }
+          if (['Low', 'Medium', 'High'].contains(parsedTask.priority)) {
+            _priority = parsedTask.priority;
+          }
+          if (_durationOptions.contains(parsedTask.estimatedDuration)) {
+             _estimatedDuration = parsedTask.estimatedDuration;
+          } else {
+             _estimatedDuration = _durationOptions.firstWhere(
+               (d) => d >= parsedTask.estimatedDuration, 
+               orElse: () => _durationOptions.last
+             );
+          }
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Task details generated!')),
+        );
+      } else {
+        final user = ref.read(authRepositoryProvider).currentUser;
+        if (user == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error: User session not found.')),
+          );
+          return;
+        }
+
+        final controller = ref.read(taskControllerProvider.notifier);
+        final now = DateTime.now();
+
+        for (final pt in parsedTasks) {
+          int duration = pt.estimatedDuration;
+          if (!_durationOptions.contains(duration)) {
+             duration = _durationOptions.firstWhere(
+               (d) => d >= pt.estimatedDuration, 
+               orElse: () => _durationOptions.last
+             );
+          }
+          
+          final taskToSave = TaskEntity(
+            taskId: '', 
+            userId: user.id,
+            title: pt.title,
+            description: '',
+            deadline: pt.deadline ?? now.add(const Duration(hours: 4)),
+            priority: ['Low', 'Medium', 'High'].contains(pt.priority) ? pt.priority : 'Medium',
+            estimatedDuration: duration,
+            createdAt: now,
+            updatedAt: now,
+          );
+          await controller.createTask(taskToSave);
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${parsedTasks.length} tasks created!')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error generating task: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isGenerating = false);
+      }
+    }
+  }
+
+  Future<void> _breakdownTask() async {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a task title first.')),
+      );
+      return;
+    }
+    setState(() => _isBreakingDown = true);
+
+    try {
+      final plannerAgent = ref.read(plannerAgentProvider);
+      final tempTask = TaskEntity(
+        taskId: '',
+        userId: '',
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        deadline: DateTime.now(),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      final generatedSubtasks = await plannerAgent.generateSubtasks(tempTask);
+      
+      if (!mounted) return;
+      setState(() {
+        _subtasks.addAll(generatedSubtasks.map((s) => s.title));
+      });
+      
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error breaking down task: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isBreakingDown = false);
+      }
     }
   }
 
@@ -157,6 +298,37 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
                 ],
               ),
               const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _magicController,
+                      decoration: const InputDecoration(
+                        labelText: 'Magic Prompt (e.g., Finish DBMS Assignment by Friday 5 PM)',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.auto_awesome),
+                      ),
+                      maxLines: 2,
+                      minLines: 1,
+                      onSubmitted: (_) => _magicGenerate(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _isGenerating 
+                    ? const Padding(
+                        padding: EdgeInsets.all(12.0),
+                        child: CircularProgressIndicator(),
+                      )
+                    : IconButton.filled(
+                        icon: const Icon(Icons.send),
+                        onPressed: _magicGenerate,
+                      ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _titleController,
                 autofocus: true,
@@ -180,6 +352,48 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
                   border: OutlineInputBorder(),
                 ),
               ),
+              const SizedBox(height: 16),
+              // Subtasks Section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Subtasks', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  _isBreakingDown
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : TextButton.icon(
+                          onPressed: _breakdownTask,
+                          icon: const Icon(Icons.auto_awesome, size: 16),
+                          label: const Text('AI Breakdown'),
+                        ),
+                ],
+              ),
+              if (_subtasks.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest.withAlpha(100),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: _subtasks.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final title = entry.value;
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.check_circle_outline, size: 18),
+                        title: Text(title, style: const TextStyle(fontSize: 14)),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.close, size: 16),
+                          onPressed: () {
+                            setState(() {
+                              _subtasks.removeAt(idx);
+                            });
+                          },
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
               const SizedBox(height: 16),
               ListTile(
                 tileColor: theme.colorScheme.surfaceContainerLow,

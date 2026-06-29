@@ -37,6 +37,7 @@ abstract class TaskEntity with _$TaskEntity {
     @Default(0) int actualDuration,
     @Default(0) int progress,
     @Default('user') String createdBy,
+    @Default([]) List<String> subtasks,
     @TimestampConverter() required DateTime createdAt,
     @TimestampConverter() required DateTime updatedAt,
   }) = _TaskEntity;

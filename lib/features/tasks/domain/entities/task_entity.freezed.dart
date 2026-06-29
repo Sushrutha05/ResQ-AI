@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$TaskEntity {
 
- String get taskId; String get userId; String get title; String get description;@TimestampConverter() DateTime get deadline; String get priority; String get status; int get estimatedDuration; int get actualDuration; int get progress; String get createdBy;@TimestampConverter() DateTime get createdAt;@TimestampConverter() DateTime get updatedAt;
+ String get taskId; String get userId; String get title; String get description;@TimestampConverter() DateTime get deadline; String get priority; String get status; int get estimatedDuration; int get actualDuration; int get progress; String get createdBy; List<String> get subtasks;@TimestampConverter() DateTime get createdAt;@TimestampConverter() DateTime get updatedAt;
 /// Create a copy of TaskEntity
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $TaskEntityCopyWith<TaskEntity> get copyWith => _$TaskEntityCopyWithImpl<TaskEnt
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TaskEntity&&(identical(other.taskId, taskId) || other.taskId == taskId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.status, status) || other.status == status)&&(identical(other.estimatedDuration, estimatedDuration) || other.estimatedDuration == estimatedDuration)&&(identical(other.actualDuration, actualDuration) || other.actualDuration == actualDuration)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TaskEntity&&(identical(other.taskId, taskId) || other.taskId == taskId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.status, status) || other.status == status)&&(identical(other.estimatedDuration, estimatedDuration) || other.estimatedDuration == estimatedDuration)&&(identical(other.actualDuration, actualDuration) || other.actualDuration == actualDuration)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&const DeepCollectionEquality().equals(other.subtasks, subtasks)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,taskId,userId,title,description,deadline,priority,status,estimatedDuration,actualDuration,progress,createdBy,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,taskId,userId,title,description,deadline,priority,status,estimatedDuration,actualDuration,progress,createdBy,const DeepCollectionEquality().hash(subtasks),createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'TaskEntity(taskId: $taskId, userId: $userId, title: $title, description: $description, deadline: $deadline, priority: $priority, status: $status, estimatedDuration: $estimatedDuration, actualDuration: $actualDuration, progress: $progress, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'TaskEntity(taskId: $taskId, userId: $userId, title: $title, description: $description, deadline: $deadline, priority: $priority, status: $status, estimatedDuration: $estimatedDuration, actualDuration: $actualDuration, progress: $progress, createdBy: $createdBy, subtasks: $subtasks, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $TaskEntityCopyWith<$Res>  {
   factory $TaskEntityCopyWith(TaskEntity value, $Res Function(TaskEntity) _then) = _$TaskEntityCopyWithImpl;
 @useResult
 $Res call({
- String taskId, String userId, String title, String description,@TimestampConverter() DateTime deadline, String priority, String status, int estimatedDuration, int actualDuration, int progress, String createdBy,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+ String taskId, String userId, String title, String description,@TimestampConverter() DateTime deadline, String priority, String status, int estimatedDuration, int actualDuration, int progress, String createdBy, List<String> subtasks,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
 });
 
 
@@ -65,7 +65,7 @@ class _$TaskEntityCopyWithImpl<$Res>
 
 /// Create a copy of TaskEntity
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? taskId = null,Object? userId = null,Object? title = null,Object? description = null,Object? deadline = null,Object? priority = null,Object? status = null,Object? estimatedDuration = null,Object? actualDuration = null,Object? progress = null,Object? createdBy = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? taskId = null,Object? userId = null,Object? title = null,Object? description = null,Object? deadline = null,Object? priority = null,Object? status = null,Object? estimatedDuration = null,Object? actualDuration = null,Object? progress = null,Object? createdBy = null,Object? subtasks = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_self.copyWith(
 taskId: null == taskId ? _self.taskId : taskId // ignore: cast_nullable_to_non_nullable
 as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
@@ -78,7 +78,8 @@ as String,estimatedDuration: null == estimatedDuration ? _self.estimatedDuration
 as int,actualDuration: null == actualDuration ? _self.actualDuration : actualDuration // ignore: cast_nullable_to_non_nullable
 as int,progress: null == progress ? _self.progress : progress // ignore: cast_nullable_to_non_nullable
 as int,createdBy: null == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
-as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String,subtasks: null == subtasks ? _self.subtasks : subtasks // ignore: cast_nullable_to_non_nullable
+as List<String>,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
@@ -165,10 +166,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String taskId,  String userId,  String title,  String description, @TimestampConverter()  DateTime deadline,  String priority,  String status,  int estimatedDuration,  int actualDuration,  int progress,  String createdBy, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String taskId,  String userId,  String title,  String description, @TimestampConverter()  DateTime deadline,  String priority,  String status,  int estimatedDuration,  int actualDuration,  int progress,  String createdBy,  List<String> subtasks, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TaskEntity() when $default != null:
-return $default(_that.taskId,_that.userId,_that.title,_that.description,_that.deadline,_that.priority,_that.status,_that.estimatedDuration,_that.actualDuration,_that.progress,_that.createdBy,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.taskId,_that.userId,_that.title,_that.description,_that.deadline,_that.priority,_that.status,_that.estimatedDuration,_that.actualDuration,_that.progress,_that.createdBy,_that.subtasks,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -186,10 +187,10 @@ return $default(_that.taskId,_that.userId,_that.title,_that.description,_that.de
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String taskId,  String userId,  String title,  String description, @TimestampConverter()  DateTime deadline,  String priority,  String status,  int estimatedDuration,  int actualDuration,  int progress,  String createdBy, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String taskId,  String userId,  String title,  String description, @TimestampConverter()  DateTime deadline,  String priority,  String status,  int estimatedDuration,  int actualDuration,  int progress,  String createdBy,  List<String> subtasks, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _TaskEntity():
-return $default(_that.taskId,_that.userId,_that.title,_that.description,_that.deadline,_that.priority,_that.status,_that.estimatedDuration,_that.actualDuration,_that.progress,_that.createdBy,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.taskId,_that.userId,_that.title,_that.description,_that.deadline,_that.priority,_that.status,_that.estimatedDuration,_that.actualDuration,_that.progress,_that.createdBy,_that.subtasks,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -206,10 +207,10 @@ return $default(_that.taskId,_that.userId,_that.title,_that.description,_that.de
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String taskId,  String userId,  String title,  String description, @TimestampConverter()  DateTime deadline,  String priority,  String status,  int estimatedDuration,  int actualDuration,  int progress,  String createdBy, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String taskId,  String userId,  String title,  String description, @TimestampConverter()  DateTime deadline,  String priority,  String status,  int estimatedDuration,  int actualDuration,  int progress,  String createdBy,  List<String> subtasks, @TimestampConverter()  DateTime createdAt, @TimestampConverter()  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _TaskEntity() when $default != null:
-return $default(_that.taskId,_that.userId,_that.title,_that.description,_that.deadline,_that.priority,_that.status,_that.estimatedDuration,_that.actualDuration,_that.progress,_that.createdBy,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.taskId,_that.userId,_that.title,_that.description,_that.deadline,_that.priority,_that.status,_that.estimatedDuration,_that.actualDuration,_that.progress,_that.createdBy,_that.subtasks,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -221,7 +222,7 @@ return $default(_that.taskId,_that.userId,_that.title,_that.description,_that.de
 @JsonSerializable()
 
 class _TaskEntity extends TaskEntity {
-  const _TaskEntity({required this.taskId, required this.userId, required this.title, this.description = '', @TimestampConverter() required this.deadline, this.priority = 'Medium', this.status = 'Pending', this.estimatedDuration = 0, this.actualDuration = 0, this.progress = 0, this.createdBy = 'user', @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt}): super._();
+  const _TaskEntity({required this.taskId, required this.userId, required this.title, this.description = '', @TimestampConverter() required this.deadline, this.priority = 'Medium', this.status = 'Pending', this.estimatedDuration = 0, this.actualDuration = 0, this.progress = 0, this.createdBy = 'user', final  List<String> subtasks = const [], @TimestampConverter() required this.createdAt, @TimestampConverter() required this.updatedAt}): _subtasks = subtasks,super._();
   factory _TaskEntity.fromJson(Map<String, dynamic> json) => _$TaskEntityFromJson(json);
 
 @override final  String taskId;
@@ -235,6 +236,13 @@ class _TaskEntity extends TaskEntity {
 @override@JsonKey() final  int actualDuration;
 @override@JsonKey() final  int progress;
 @override@JsonKey() final  String createdBy;
+ final  List<String> _subtasks;
+@override@JsonKey() List<String> get subtasks {
+  if (_subtasks is EqualUnmodifiableListView) return _subtasks;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_subtasks);
+}
+
 @override@TimestampConverter() final  DateTime createdAt;
 @override@TimestampConverter() final  DateTime updatedAt;
 
@@ -251,16 +259,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TaskEntity&&(identical(other.taskId, taskId) || other.taskId == taskId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.status, status) || other.status == status)&&(identical(other.estimatedDuration, estimatedDuration) || other.estimatedDuration == estimatedDuration)&&(identical(other.actualDuration, actualDuration) || other.actualDuration == actualDuration)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TaskEntity&&(identical(other.taskId, taskId) || other.taskId == taskId)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.status, status) || other.status == status)&&(identical(other.estimatedDuration, estimatedDuration) || other.estimatedDuration == estimatedDuration)&&(identical(other.actualDuration, actualDuration) || other.actualDuration == actualDuration)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&const DeepCollectionEquality().equals(other._subtasks, _subtasks)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,taskId,userId,title,description,deadline,priority,status,estimatedDuration,actualDuration,progress,createdBy,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,taskId,userId,title,description,deadline,priority,status,estimatedDuration,actualDuration,progress,createdBy,const DeepCollectionEquality().hash(_subtasks),createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'TaskEntity(taskId: $taskId, userId: $userId, title: $title, description: $description, deadline: $deadline, priority: $priority, status: $status, estimatedDuration: $estimatedDuration, actualDuration: $actualDuration, progress: $progress, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'TaskEntity(taskId: $taskId, userId: $userId, title: $title, description: $description, deadline: $deadline, priority: $priority, status: $status, estimatedDuration: $estimatedDuration, actualDuration: $actualDuration, progress: $progress, createdBy: $createdBy, subtasks: $subtasks, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -271,7 +279,7 @@ abstract mixin class _$TaskEntityCopyWith<$Res> implements $TaskEntityCopyWith<$
   factory _$TaskEntityCopyWith(_TaskEntity value, $Res Function(_TaskEntity) _then) = __$TaskEntityCopyWithImpl;
 @override @useResult
 $Res call({
- String taskId, String userId, String title, String description,@TimestampConverter() DateTime deadline, String priority, String status, int estimatedDuration, int actualDuration, int progress, String createdBy,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
+ String taskId, String userId, String title, String description,@TimestampConverter() DateTime deadline, String priority, String status, int estimatedDuration, int actualDuration, int progress, String createdBy, List<String> subtasks,@TimestampConverter() DateTime createdAt,@TimestampConverter() DateTime updatedAt
 });
 
 
@@ -288,7 +296,7 @@ class __$TaskEntityCopyWithImpl<$Res>
 
 /// Create a copy of TaskEntity
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? taskId = null,Object? userId = null,Object? title = null,Object? description = null,Object? deadline = null,Object? priority = null,Object? status = null,Object? estimatedDuration = null,Object? actualDuration = null,Object? progress = null,Object? createdBy = null,Object? createdAt = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? taskId = null,Object? userId = null,Object? title = null,Object? description = null,Object? deadline = null,Object? priority = null,Object? status = null,Object? estimatedDuration = null,Object? actualDuration = null,Object? progress = null,Object? createdBy = null,Object? subtasks = null,Object? createdAt = null,Object? updatedAt = null,}) {
   return _then(_TaskEntity(
 taskId: null == taskId ? _self.taskId : taskId // ignore: cast_nullable_to_non_nullable
 as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
@@ -301,7 +309,8 @@ as String,estimatedDuration: null == estimatedDuration ? _self.estimatedDuration
 as int,actualDuration: null == actualDuration ? _self.actualDuration : actualDuration // ignore: cast_nullable_to_non_nullable
 as int,progress: null == progress ? _self.progress : progress // ignore: cast_nullable_to_non_nullable
 as int,createdBy: null == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
-as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String,subtasks: null == subtasks ? _self._subtasks : subtasks // ignore: cast_nullable_to_non_nullable
+as List<String>,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));

@@ -18,6 +18,9 @@ _TaskEntity _$TaskEntityFromJson(Map<String, dynamic> json) => _TaskEntity(
   actualDuration: (json['actualDuration'] as num?)?.toInt() ?? 0,
   progress: (json['progress'] as num?)?.toInt() ?? 0,
   createdBy: json['createdBy'] as String? ?? 'user',
+  subtasks:
+      (json['subtasks'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const [],
   createdAt: const TimestampConverter().fromJson(json['createdAt']),
   updatedAt: const TimestampConverter().fromJson(json['updatedAt']),
 );
@@ -35,6 +38,7 @@ Map<String, dynamic> _$TaskEntityToJson(_TaskEntity instance) =>
       'actualDuration': instance.actualDuration,
       'progress': instance.progress,
       'createdBy': instance.createdBy,
+      'subtasks': instance.subtasks,
       'createdAt': const TimestampConverter().toJson(instance.createdAt),
       'updatedAt': const TimestampConverter().toJson(instance.updatedAt),
     };
