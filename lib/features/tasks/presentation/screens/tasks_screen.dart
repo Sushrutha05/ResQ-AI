@@ -268,301 +268,393 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                               );
                               final isCompleted = task.status == 'Completed';
 
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                elevation: 1,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12.0,
-                                    vertical: 12.0,
+                              return Dismissible(
+                                key: ValueKey(task.taskId),
+                                background: Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green,
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Checkbox(
-                                        value: isCompleted,
-                                        onChanged: (val) {
-                                          if (val != null) {
-                                            ref
-                                                .read(
-                                                  taskControllerProvider
-                                                      .notifier,
-                                                )
-                                                .updateTask(
-                                                  task.copyWith(
-                                                    status:
-                                                        val
-                                                            ? 'Completed'
-                                                            : 'Pending',
-                                                    progress: val ? 100 : 0,
-                                                  ),
-                                                );
-                                          }
-                                        },
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              task.title,
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                decoration:
-                                                    isCompleted
-                                                        ? TextDecoration
-                                                            .lineThrough
-                                                        : null,
-                                                color:
-                                                    isCompleted
-                                                        ? theme
-                                                            .colorScheme
-                                                            .onSurfaceVariant
-                                                        : null,
-                                              ),
+                                  alignment: Alignment.centerLeft,
+                                  padding: const EdgeInsets.only(left: 20),
+                                  child: const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 30,
+                                  ),
+                                ),
+                                secondaryBackground: Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: 20),
+                                  child: const Icon(
+                                    Icons.delete,
+                                    color: Colors.white,
+                                    size: 30,
+                                  ),
+                                ),
+                                confirmDismiss: (direction) async {
+                                  if (direction ==
+                                      DismissDirection.startToEnd) {
+                                    ref
+                                        .read(taskControllerProvider.notifier)
+                                        .updateTask(
+                                          task.copyWith(
+                                            status:
+                                                isCompleted
+                                                    ? 'Pending'
+                                                    : 'Completed',
+                                            progress: isCompleted ? 0 : 100,
+                                          ),
+                                        );
+                                    return false; // Snap back, let Riverpod handle the rebuild
+                                  } else if (direction ==
+                                      DismissDirection.endToStart) {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder:
+                                          (ctx) => AlertDialog(
+                                            title: const Text('Delete Task'),
+                                            content: const Text(
+                                              'Are you sure you want to delete this task?',
                                             ),
-                                            if (task
-                                                .description
-                                                .isNotEmpty) ...[
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                task.description,
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  fontSize: 13,
-                                                  color:
-                                                      theme
-                                                          .colorScheme
-                                                          .onSurfaceVariant,
+                                            actions: [
+                                              TextButton(
+                                                onPressed:
+                                                    () => Navigator.of(
+                                                      ctx,
+                                                    ).pop(false),
+                                                child: const Text('Cancel'),
+                                              ),
+                                              TextButton(
+                                                style: TextButton.styleFrom(
+                                                  foregroundColor: Colors.red,
                                                 ),
+                                                onPressed:
+                                                    () => Navigator.of(
+                                                      ctx,
+                                                    ).pop(true),
+                                                child: const Text('Delete'),
                                               ),
                                             ],
-                                            Wrap(
-                                              spacing: 12,
-                                              runSpacing: 4,
-                                              crossAxisAlignment:
-                                                  WrapCrossAlignment.center,
-                                              children: [
-                                                Container(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 2,
-                                                      ),
-                                                  decoration: BoxDecoration(
-                                                    color: priorityColor
-                                                        .withAlpha(30),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          6,
-                                                        ),
-                                                  ),
-                                                  child: Text(
-                                                    task.priority,
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      color: priorityColor,
-                                                      fontWeight:
-                                                          FontWeight.bold,
+                                          ),
+                                    );
+                                    if (confirm == true) {
+                                      ref
+                                          .read(taskControllerProvider.notifier)
+                                          .deleteTask(task.taskId);
+                                      return true;
+                                    }
+                                    return false;
+                                  }
+                                  return false;
+                                },
+                                child: Card(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  elevation: 1,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12.0,
+                                      vertical: 12.0,
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Checkbox(
+                                          value: isCompleted,
+                                          onChanged: (val) {
+                                            if (val != null) {
+                                              ref
+                                                  .read(
+                                                    taskControllerProvider
+                                                        .notifier,
+                                                  )
+                                                  .updateTask(
+                                                    task.copyWith(
+                                                      status:
+                                                          val
+                                                              ? 'Completed'
+                                                              : 'Pending',
+                                                      progress: val ? 100 : 0,
                                                     ),
+                                                  );
+                                            }
+                                          },
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                task.title,
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  decoration:
+                                                      isCompleted
+                                                          ? TextDecoration
+                                                              .lineThrough
+                                                          : null,
+                                                  color:
+                                                      isCompleted
+                                                          ? theme
+                                                              .colorScheme
+                                                              .onSurfaceVariant
+                                                          : null,
+                                                ),
+                                              ),
+                                              if (task
+                                                  .description
+                                                  .isNotEmpty) ...[
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  task.description,
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    color:
+                                                        theme
+                                                            .colorScheme
+                                                            .onSurfaceVariant,
                                                   ),
                                                 ),
-                                                if (task.riskScore != null) ...[
-                                                  Tooltip(
-                                                    message:
-                                                        task.riskExplanation ??
-                                                        '',
-                                                    child: Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 8,
-                                                            vertical: 2,
-                                                          ),
-                                                      decoration: BoxDecoration(
-                                                        color: _getRiskColor(
-                                                          task.riskScore!,
-                                                        ).withAlpha(30),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              6,
-                                                            ),
-                                                      ),
-                                                      child: Text(
-                                                        'Risk: ${task.riskScore}%',
-                                                        style: TextStyle(
-                                                          fontSize: 11,
-                                                          color: _getRiskColor(
-                                                            task.riskScore!,
-                                                          ),
-                                                          fontWeight:
-                                                              FontWeight.bold,
+                                              ],
+                                              Wrap(
+                                                spacing: 12,
+                                                runSpacing: 4,
+                                                crossAxisAlignment:
+                                                    WrapCrossAlignment.center,
+                                                children: [
+                                                  Container(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 2,
                                                         ),
+                                                    decoration: BoxDecoration(
+                                                      color: priorityColor
+                                                          .withAlpha(30),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            6,
+                                                          ),
+                                                    ),
+                                                    child: Text(
+                                                      task.priority,
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: priorityColor,
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                       ),
                                                     ),
                                                   ),
-                                                ],
-                                                if (task
-                                                    .subtasks
-                                                    .isNotEmpty) ...[
-                                                  InkWell(
-                                                    onTap:
-                                                        () =>
-                                                            _showSubtasksSheet(
-                                                              context,
-                                                              task,
+                                                  if (task.riskScore !=
+                                                      null) ...[
+                                                    Tooltip(
+                                                      message:
+                                                          task.riskExplanation ??
+                                                          '',
+                                                      child: Container(
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal: 8,
+                                                              vertical: 2,
                                                             ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          4,
+                                                        decoration: BoxDecoration(
+                                                          color: _getRiskColor(
+                                                            task.riskScore!,
+                                                          ).withAlpha(30),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                6,
+                                                              ),
                                                         ),
-                                                    child: Padding(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 4,
-                                                            vertical: 2,
+                                                        child: Text(
+                                                          'Risk: ${task.riskScore}%',
+                                                          style: TextStyle(
+                                                            fontSize: 11,
+                                                            color: _getRiskColor(
+                                                              task.riskScore!,
+                                                            ),
+                                                            fontWeight:
+                                                                FontWeight.bold,
                                                           ),
-                                                      child: Row(
-                                                        mainAxisSize:
-                                                            MainAxisSize.min,
-                                                        children: [
-                                                          Icon(
-                                                            Icons
-                                                                .format_list_bulleted,
-                                                            size: 13,
-                                                            color:
-                                                                theme
-                                                                    .colorScheme
-                                                                    .primary,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                  if (task
+                                                      .subtasks
+                                                      .isNotEmpty) ...[
+                                                    InkWell(
+                                                      onTap:
+                                                          () =>
+                                                              _showSubtasksSheet(
+                                                                context,
+                                                                task,
+                                                              ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            4,
                                                           ),
-                                                          const SizedBox(
-                                                            width: 4,
-                                                          ),
-                                                          Text(
-                                                            '${task.subtasks.length} subtasks',
-                                                            style: TextStyle(
-                                                              fontSize: 11,
+                                                      child: Padding(
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal: 4,
+                                                              vertical: 2,
+                                                            ),
+                                                        child: Row(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            Icon(
+                                                              Icons
+                                                                  .format_list_bulleted,
+                                                              size: 13,
                                                               color:
                                                                   theme
                                                                       .colorScheme
                                                                       .primary,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
                                                             ),
-                                                          ),
-                                                        ],
+                                                            const SizedBox(
+                                                              width: 4,
+                                                            ),
+                                                            Text(
+                                                              '${task.subtasks.length} subtasks',
+                                                              style: TextStyle(
+                                                                fontSize: 11,
+                                                                color:
+                                                                    theme
+                                                                        .colorScheme
+                                                                        .primary,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
                                                       ),
                                                     ),
-                                                  ),
-                                                ],
-                                                Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.calendar_today,
-                                                      size: 13,
-                                                      color:
-                                                          theme
-                                                              .colorScheme
-                                                              .onSurfaceVariant,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      task.deadline
-                                                          .toLocal()
-                                                          .toString()
-                                                          .substring(0, 16),
-                                                      style: TextStyle(
-                                                        fontSize: 11,
+                                                  ],
+                                                  Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Icon(
+                                                        Icons.calendar_today,
+                                                        size: 13,
                                                         color:
                                                             theme
                                                                 .colorScheme
                                                                 .onSurfaceVariant,
                                                       ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      _assessingRiskId == task.taskId
-                                          ? const Padding(
-                                            padding: EdgeInsets.all(12.0),
-                                            child: SizedBox(
-                                              width: 20,
-                                              height: 20,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                              ),
-                                            ),
-                                          )
-                                          : IconButton(
-                                            icon: const Icon(
-                                              Icons.analytics_outlined,
-                                              color: Colors.purple,
-                                            ),
-                                            tooltip: 'Assess Risk',
-                                            onPressed: () => _assessRisk(task),
-                                          ),
-                                      PopupMenuButton<String>(
-                                        icon: const Icon(Icons.more_vert),
-                                        onSelected: (value) {
-                                          if (value == 'edit')
-                                            _showFormSheet(task);
-                                          if (value == 'delete')
-                                            _confirmDelete(task.taskId);
-                                        },
-                                        itemBuilder:
-                                            (context) => [
-                                              const PopupMenuItem(
-                                                value: 'edit',
-                                                child: Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.edit_outlined,
-                                                      size: 20,
-                                                    ),
-                                                    SizedBox(width: 8),
-                                                    Text('Edit'),
-                                                  ],
-                                                ),
-                                              ),
-                                              const PopupMenuItem(
-                                                value: 'delete',
-                                                child: Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.delete_outline,
-                                                      size: 20,
-                                                      color: Colors.redAccent,
-                                                    ),
-                                                    SizedBox(width: 8),
-                                                    Text(
-                                                      'Delete',
-                                                      style: TextStyle(
-                                                        color: Colors.redAccent,
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        task.deadline
+                                                            .toLocal()
+                                                            .toString()
+                                                            .substring(0, 16),
+                                                        style: TextStyle(
+                                                          fontSize: 11,
+                                                          color:
+                                                              theme
+                                                                  .colorScheme
+                                                                  .onSurfaceVariant,
+                                                        ),
                                                       ),
-                                                    ),
-                                                  ],
-                                                ),
+                                                    ],
+                                                  ),
+                                                ],
                                               ),
                                             ],
-                                      ),
-                                    ],
+                                          ),
+                                        ),
+                                        _assessingRiskId == task.taskId
+                                            ? const Padding(
+                                              padding: EdgeInsets.all(12.0),
+                                              child: SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                    ),
+                                              ),
+                                            )
+                                            : IconButton(
+                                              icon: const Icon(
+                                                Icons.analytics_outlined,
+                                                color: Colors.purple,
+                                              ),
+                                              tooltip: 'Assess Risk',
+                                              onPressed:
+                                                  () => _assessRisk(task),
+                                            ),
+                                        PopupMenuButton<String>(
+                                          icon: const Icon(Icons.more_vert),
+                                          onSelected: (value) {
+                                            if (value == 'edit')
+                                              _showFormSheet(task);
+                                            if (value == 'delete')
+                                              _confirmDelete(task.taskId);
+                                          },
+                                          itemBuilder:
+                                              (context) => [
+                                                const PopupMenuItem(
+                                                  value: 'edit',
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.edit_outlined,
+                                                        size: 20,
+                                                      ),
+                                                      SizedBox(width: 8),
+                                                      Text('Edit'),
+                                                    ],
+                                                  ),
+                                                ),
+                                                const PopupMenuItem(
+                                                  value: 'delete',
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.delete_outline,
+                                                        size: 20,
+                                                        color: Colors.redAccent,
+                                                      ),
+                                                      SizedBox(width: 8),
+                                                      Text(
+                                                        'Delete',
+                                                        style: TextStyle(
+                                                          color:
+                                                              Colors.redAccent,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ).animate().fade().slideX(begin: 0.05),
-                              );
+                                ),
+                              ).animate(key: ValueKey('anim_${task.taskId}')).fade().slideX(begin: 0.05);
                             },
                           ),
                 );
