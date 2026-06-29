@@ -12,33 +12,55 @@ class CoachAgent {
     if (apiKey == null) {
       throw Exception('GEMINI_API_KEY not found in .env');
     }
-    _model = GenerativeModel(
-      model: 'gemini-2.5-flash',
-      apiKey: apiKey,
-    );
+    _model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: apiKey);
   }
 
   Future<DailyBriefing> generateDailyBriefing(List<TaskEntity> tasks) async {
     final pendingTasks = tasks.where((t) => t.status != 'Completed').toList();
-    final highRiskTasks = pendingTasks.where((t) => (t.riskScore ?? 0) > 40).toList();
+    final highRiskTasks =
+        pendingTasks.where((t) => (t.riskScore ?? 0) > 40).toList();
 
     String taskContext = "Current Tasks:\n";
     if (pendingTasks.isEmpty) {
       taskContext += "The user has no pending tasks!\n";
     } else {
-      for (var task in pendingTasks) {
-        taskContext += "- ${task.title} (Deadline: ${task.deadline}, Risk: ${task.riskScore ?? 0}%)\n";
+      if (highRiskTasks.isNotEmpty) {
+        taskContext += "CRITICAL ATTENTION NEEDED for these High Risk tasks:\n";
+        for (var task in highRiskTasks) {
+          taskContext += "- ${task.title} (Risk: ${task.riskScore ?? 0}%)\n";
+        }
+        taskContext += "\nOther Tasks:\n";
+      }
+      for (var task in pendingTasks.where((t) => (t.riskScore ?? 0) <= 40)) {
+        taskContext +=
+            "- ${task.title} (Deadline: ${task.deadline}, Risk: ${task.riskScore ?? 0}%)\n";
       }
     }
 
     final schema = Schema.object(
       properties: {
-        'greeting': Schema.string(description: 'A punchy, energetic, and short greeting.'),
-        'motivationText': Schema.string(description: 'A short paragraph acknowledging their workload and motivating them. Act as a strict but encouraging accountability partner.'),
-        'topRecommendation': Schema.string(description: 'The single most important thing they should do right now.'),
-        'impactStatement': Schema.string(description: 'A data-driven or logical statement on how starting now improves their success chance (e.g. "If you begin now, your completion chance increases from 52% to 91%").'),
+        'greeting': Schema.string(
+          description: 'A punchy, energetic, and short greeting.',
+        ),
+        'motivationText': Schema.string(
+          description:
+              'A short paragraph acknowledging their workload and motivating them. Act as a strict but encouraging accountability partner.',
+        ),
+        'topRecommendation': Schema.string(
+          description:
+              'The single most important thing they should do right now.',
+        ),
+        'impactStatement': Schema.string(
+          description:
+              'A data-driven or logical statement on how starting now improves their success chance (e.g. "If you begin now, your completion chance increases from 52% to 91%").',
+        ),
       },
-      requiredProperties: ['greeting', 'motivationText', 'topRecommendation', 'impactStatement'],
+      requiredProperties: [
+        'greeting',
+        'motivationText',
+        'topRecommendation',
+        'impactStatement',
+      ],
     );
 
     final prompt = '''

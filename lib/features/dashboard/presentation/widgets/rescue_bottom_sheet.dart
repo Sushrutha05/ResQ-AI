@@ -4,7 +4,6 @@ import 'package:resq_ai/ai/rescue/rescue_models.dart';
 import 'package:resq_ai/ai/rescue/rescue_provider.dart';
 import 'package:resq_ai/features/tasks/domain/entities/task_entity.dart';
 import 'package:resq_ai/features/tasks/presentation/providers/task_providers.dart';
-import '../screens/dashboard_screen.dart';
 
 class RescueBottomSheet extends ConsumerStatefulWidget {
   final List<TaskEntity> tasks;

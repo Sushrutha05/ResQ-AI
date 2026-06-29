@@ -7,12 +7,11 @@ import 'package:resq_ai/features/tasks/presentation/providers/task_providers.dar
 import '../../../authentication/presentation/providers/auth_provider.dart';
 import 'package:resq_ai/ai/scheduler/scheduler_provider.dart';
 import 'package:resq_ai/ai/scheduler/scheduler_models.dart';
+import 'package:resq_ai/ai/rescue/rescue_provider.dart';
 import '../widgets/rescue_bottom_sheet.dart';
 import 'navigation_shell.dart';
 
 final recommendationDismissedProvider = StateProvider<bool>((ref) => false);
-final isRescueModeActiveProvider = StateProvider<bool>((ref) => false);
-final rescueUndoStateProvider = StateProvider<List<TaskEntity>>((ref) => []);
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
