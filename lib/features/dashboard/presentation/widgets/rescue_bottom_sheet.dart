@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:resq_ai/ai/rescue/rescue_models.dart';
@@ -28,7 +29,14 @@ class _RescueBottomSheetState extends ConsumerState<RescueBottomSheet> {
   Future<void> _fetchPlan() async {
     try {
       final agent = ref.read(rescueAgentProvider);
-      final plan = await agent.generateRecoveryPlan(widget.tasks);
+
+      // Ensure the beautiful glass loading screen is visible for at least 500ms
+      final results = await Future.wait([
+        agent.generateRecoveryPlan(widget.tasks),
+        Future.delayed(const Duration(seconds: 1)),
+      ]);
+
+      final plan = results[0] as RecoveryPlan;
       if (mounted) {
         setState(() {
           _plan = plan;
@@ -121,27 +129,39 @@ class _RescueBottomSheetState extends ConsumerState<RescueBottomSheet> {
     final theme = Theme.of(context);
 
     if (_isLoading) {
-      return Container(
-        height: 300,
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(color: Colors.red),
-            const SizedBox(height: 24),
-            Text(
-              'Triaging your schedule...',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: Colors.red,
-                fontWeight: FontWeight.bold,
-              ),
+      return ClipRRect(
+        borderRadius: BorderRadius.zero, // Full screen, no top radius needed
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+          child: Container(
+            height: MediaQuery.of(context).size.height,
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface.withAlpha(
+                80,
+              ), // More transparent for better glass effect
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Finding the best path to recovery.',
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(color: Colors.red),
+                const SizedBox(height: 24),
+                Text(
+                  'Triaging your schedule...',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Finding the best path to recovery.',
+                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       );
     }
