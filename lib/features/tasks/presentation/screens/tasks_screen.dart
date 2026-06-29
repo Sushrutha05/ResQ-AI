@@ -407,7 +407,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Text(
-                                                  '${task.subtasks!.length} subtasks',
+                                                  '${task.subtasks.length} subtasks',
                                                   style: TextStyle(
                                                     fontSize: 11,
                                                     color:
