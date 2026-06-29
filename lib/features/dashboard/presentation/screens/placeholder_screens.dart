@@ -28,30 +28,7 @@ class CalendarScreen extends StatelessWidget {
   }
 }
 
-class AICoachScreen extends StatelessWidget {
-  const AICoachScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.psychology, size: 64, color: Colors.purple),
-            SizedBox(height: 16),
-            Text(
-              'AI Coach & Assistant',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Text('Get insights and recovery recommendations.', style: TextStyle(color: Colors.grey)),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// Removed AICoachScreen
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});

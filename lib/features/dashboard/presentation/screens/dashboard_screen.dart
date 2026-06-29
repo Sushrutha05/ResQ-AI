@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:resq_ai/features/tasks/domain/entities/task_entity.dart';
 import 'package:resq_ai/features/tasks/presentation/providers/task_providers.dart';
 import '../../../authentication/presentation/providers/auth_provider.dart';
@@ -8,9 +9,16 @@ import 'package:resq_ai/ai/scheduler/scheduler_provider.dart';
 import 'package:resq_ai/ai/scheduler/scheduler_models.dart';
 import 'navigation_shell.dart';
 
-class DashboardScreen extends ConsumerWidget {
+final recommendationDismissedProvider = StateProvider<bool>((ref) => false);
+
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
+  @override
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) return 'Good Morning';
@@ -19,7 +27,7 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
     final userEmail = authState.value?.email ?? 'Developer';
     final displayName = userEmail.split('@')[0];
@@ -28,6 +36,7 @@ class DashboardScreen extends ConsumerWidget {
     final tasksAsync = ref.watch(userTasksStreamProvider);
     final tasks = tasksAsync.value ?? [];
     final schedule = ref.watch(generatedScheduleProvider);
+    final isDismissed = ref.watch(recommendationDismissedProvider);
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -80,8 +89,10 @@ class DashboardScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // 4. AI Recommendations Card
-              _buildAIRecommendations(context, ref, tasks),
-              const SizedBox(height: 24),
+              if (!isDismissed) ...[
+                _buildAIRecommendations(context, ref, tasks),
+                const SizedBox(height: 24),
+              ],
 
               // 5. High Risk Tasks
               _buildHighRiskTasksSection(context, tasks),
@@ -306,7 +317,11 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAIRecommendations(BuildContext context, WidgetRef ref, List<TaskEntity> tasks) {
+  Widget _buildAIRecommendations(
+    BuildContext context,
+    WidgetRef ref,
+    List<TaskEntity> tasks,
+  ) {
     final theme = Theme.of(context);
     final pendingTasks = tasks.where((t) => t.status != 'Completed').toList();
     final highRiskCount =
@@ -415,7 +430,14 @@ class DashboardScreen extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    TextButton(onPressed: () {}, child: const Text('Dismiss')),
+                    TextButton(
+                      onPressed: () {
+                        ref
+                            .read(recommendationDismissedProvider.notifier)
+                            .state = true;
+                      },
+                      child: const Text('Dismiss'),
+                    ),
                     const SizedBox(width: 8),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -425,9 +447,18 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                       onPressed: () {
                         if (highRiskCount > 0 || pendingTasks.isNotEmpty) {
-                          ref.read(navigationIndexProvider.notifier).setIndex(1); // 1 is Tasks tab
+                          ref
+                              .read(navigationIndexProvider.notifier)
+                              .setIndex(1); // 1 is Tasks tab
+                          ref
+                              .read(recommendationDismissedProvider.notifier)
+                              .state = true;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Plan accepted! Head over to Tasks.')),
+                            const SnackBar(
+                              content: Text(
+                                'Plan accepted! Head over to Tasks.',
+                              ),
+                            ),
                           );
                         }
                       },

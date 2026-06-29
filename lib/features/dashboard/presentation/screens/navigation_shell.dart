@@ -4,6 +4,7 @@ import 'package:resq_ai/features/tasks/presentation/screens/tasks_screen.dart';
 import 'package:resq_ai/features/schedule/presentation/screens/schedule_screen.dart';
 import 'dashboard_screen.dart';
 import 'placeholder_screens.dart';
+import 'coach_screen.dart';
 
 class NavigationIndexNotifier extends Notifier<int> {
   @override
@@ -29,7 +30,7 @@ class _NavigationShellState extends ConsumerState<NavigationShell> {
     const DashboardScreen(),
     const TasksScreen(),
     const ScheduleScreen(),
-    const AICoachScreen(),
+    const CoachScreen(),
     const ProfileScreen(),
   ];
 
