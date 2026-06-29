@@ -381,8 +381,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                                           ),
                                         ),
                                       ],
-                                      if (task.subtasks != null &&
-                                          task.subtasks!.isNotEmpty) ...[
+                                      if (task.subtasks.isNotEmpty) ...[
                                         InkWell(
                                           onTap:
                                               () => _showSubtasksSheet(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:resq_ai/ai/rescue/rescue_agent.dart';
 import 'package:resq_ai/ai/rescue/rescue_models.dart';
 import 'package:resq_ai/ai/rescue/rescue_provider.dart';
 import 'package:resq_ai/features/tasks/domain/entities/task_entity.dart';
@@ -56,7 +55,7 @@ class _RescueBottomSheetState extends ConsumerState<RescueBottomSheet> {
 
     try {
       final tasksNotifier = ref.read(taskControllerProvider.notifier);
-      
+
       // Delay the dropped tasks by pushing their deadline 1 day, or we can just mark them as delayed somehow.
       // For simplicity, let's add 24 hours to the deadlines of dropped tasks.
       final originalTasks = <TaskEntity>[];
@@ -64,15 +63,16 @@ class _RescueBottomSheetState extends ConsumerState<RescueBottomSheet> {
       for (var id in _plan!.dropTaskIds) {
         final task = widget.tasks.firstWhere(
           (t) => t.taskId == id.trim(),
-          orElse: () => TaskEntity(
-            taskId: 'unknown',
-            userId: 'unknown',
-            title: 'Unknown Task',
-            deadline: DateTime.now(),
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-            status: 'Pending',
-          ),
+          orElse:
+              () => TaskEntity(
+                taskId: 'unknown',
+                userId: 'unknown',
+                title: 'Unknown Task',
+                deadline: DateTime.now(),
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+                status: 'Pending',
+              ),
         );
 
         if (task.taskId == 'unknown') continue;
@@ -80,14 +80,14 @@ class _RescueBottomSheetState extends ConsumerState<RescueBottomSheet> {
         originalTasks.add(task);
 
         final newDeadline = task.deadline.add(const Duration(days: 1));
-        
+
         final updatedTask = task.copyWith(
           deadline: newDeadline,
           status: 'Delayed',
           riskScore: null,
           riskExplanation: 'Delayed by Rescue Plan. Pending recalculation.',
         );
-        
+
         await tasksNotifier.updateTask(updatedTask);
       }
 
@@ -98,7 +98,11 @@ class _RescueBottomSheetState extends ConsumerState<RescueBottomSheet> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Rescue Plan Accepted! Your schedule has been stabilized.')),
+          const SnackBar(
+            content: Text(
+              'Rescue Plan Accepted! Your schedule has been stabilized.',
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -106,9 +110,9 @@ class _RescueBottomSheetState extends ConsumerState<RescueBottomSheet> {
         setState(() {
           _isAccepting = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error accepting plan: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error accepting plan: $e')));
       }
     }
   }
@@ -147,9 +151,7 @@ class _RescueBottomSheetState extends ConsumerState<RescueBottomSheet> {
       return Container(
         height: 200,
         padding: const EdgeInsets.all(24),
-        child: const Center(
-          child: Text('Could not generate recovery plan.'),
-        ),
+        child: const Center(child: Text('Could not generate recovery plan.')),
       );
     }
 
@@ -166,7 +168,11 @@ class _RescueBottomSheetState extends ConsumerState<RescueBottomSheet> {
           children: [
             Row(
               children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+                const Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.red,
+                  size: 28,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Recovery Plan Generated',
@@ -180,38 +186,62 @@ class _RescueBottomSheetState extends ConsumerState<RescueBottomSheet> {
             const SizedBox(height: 16),
             Text(
               _plan!.emergencyAdvice,
-              style: const TextStyle(fontSize: 16, height: 1.4, fontWeight: FontWeight.w500),
+              style: const TextStyle(
+                fontSize: 16,
+                height: 1.4,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             const SizedBox(height: 24),
             if (_plan!.dropTaskIds.isNotEmpty) ...[
               Text(
                 'Tasks to Delay (Pushed by 24h):',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               ...List.generate(_plan!.dropTaskIds.length, (index) {
                 final id = _plan!.dropTaskIds[index];
-                final reason = _plan!.dropReasons.length > index ? _plan!.dropReasons[index] : 'Needs to be delayed.';
-                
+                final reason =
+                    _plan!.dropReasons.length > index
+                        ? _plan!.dropReasons[index]
+                        : 'Needs to be delayed.';
+
                 // Find the task title
                 final task = widget.tasks.firstWhere(
                   (t) => t.taskId == id,
-                  orElse: () => TaskEntity(
-                    taskId: 'unknown',
-                    userId: 'unknown',
-                    title: 'Unknown Task',
-                    deadline: DateTime.now(),
-                    createdAt: DateTime.now(),
-                    updatedAt: DateTime.now(),
-                    status: 'Pending',
-                  ),
+                  orElse:
+                      () => TaskEntity(
+                        taskId: 'unknown',
+                        userId: 'unknown',
+                        title: 'Unknown Task',
+                        deadline: DateTime.now(),
+                        createdAt: DateTime.now(),
+                        updatedAt: DateTime.now(),
+                        status: 'Pending',
+                      ),
                 );
-                
+
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                  title: Text(task.title, style: const TextStyle(decoration: TextDecoration.lineThrough)),
-                  subtitle: Text(reason, style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12)),
+                  leading: const Icon(
+                    Icons.remove_circle_outline,
+                    color: Colors.red,
+                  ),
+                  title: Text(
+                    task.title,
+                    style: const TextStyle(
+                      decoration: TextDecoration.lineThrough,
+                    ),
+                  ),
+                  subtitle: Text(
+                    reason,
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                  ),
                 );
               }),
             ] else ...[
@@ -224,15 +254,21 @@ class _RescueBottomSheetState extends ConsumerState<RescueBottomSheet> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 onPressed: _isAccepting ? null : _acceptPlan,
-                child: _isAccepting 
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text(
-                      'Accept Triage Plan',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
+                child:
+                    _isAccepting
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                          'Accept Triage Plan',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
               ),
             ),
             const SizedBox(height: 12),
