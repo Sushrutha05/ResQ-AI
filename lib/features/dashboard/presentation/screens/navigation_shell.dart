@@ -81,20 +81,26 @@ class _NavigationShellState extends ConsumerState<NavigationShell> {
               },
               labelType: NavigationRailLabelType.all,
               backgroundColor: theme.colorScheme.surfaceContainerLow,
-              indicatorColor: theme.colorScheme.primaryContainer,
-              selectedIconTheme: IconThemeData(
-                color: theme.colorScheme.onPrimaryContainer,
+              indicatorColor: theme.brightness == Brightness.light 
+                  ? const Color(0xFF22C7F2).withOpacity(0.2) 
+                  : const Color(0xFF22C7F2).withOpacity(0.2),
+              selectedIconTheme: const IconThemeData(
+                color: Color(0xFF22C7F2),
               ),
               unselectedIconTheme: IconThemeData(
-                color: theme.colorScheme.onSurfaceVariant,
+                color: theme.brightness == Brightness.light 
+                    ? const Color(0xFF475569) 
+                    : const Color(0xFF94A3B8),
               ),
-              selectedLabelTextStyle: TextStyle(
-                color: theme.colorScheme.primary,
+              selectedLabelTextStyle: const TextStyle(
+                color: Color(0xFF22C7F2),
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
               ),
               unselectedLabelTextStyle: TextStyle(
-                color: theme.colorScheme.onSurfaceVariant,
+                color: theme.brightness == Brightness.light 
+                    ? const Color(0xFF475569) 
+                    : const Color(0xFF94A3B8),
                 fontSize: 12,
               ),
               destinations:
