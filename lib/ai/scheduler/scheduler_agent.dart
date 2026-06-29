@@ -3,6 +3,7 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'scheduler_models.dart';
 import '../../features/tasks/domain/entities/task_entity.dart';
+import '../../features/calendar/domain/entities/calendar_event.dart';
 
 class SchedulerAgent {
   late GenerativeModel _model;
@@ -16,7 +17,7 @@ class SchedulerAgent {
     _model = GenerativeModel(model: 'gemini-3.1-flash-lite', apiKey: apiKey);
   }
 
-  Future<List<ScheduleBlock>> generateSchedule(List<TaskEntity> tasks) async {
+  Future<List<ScheduleBlock>> generateSchedule(List<TaskEntity> tasks, List<CalendarEvent> events) async {
     final schema = Schema.array(
       description: 'A timeline of schedule blocks for the day.',
       items: Schema.object(
@@ -28,13 +29,13 @@ class SchedulerAgent {
             description: 'ISO 8601 formatted datetime for the end of the block.',
           ),
           'title': Schema.string(
-            description: 'Title of the task or break.',
+            description: 'Title of the task, break, or calendar event.',
           ),
           'type': Schema.string(
-            description: 'Either "task" or "break".',
+            description: 'Either "task", "break", or "event".',
           ),
           'taskId': Schema.string(
-            description: 'The taskId if this is a task, or empty/null for breaks.',
+            description: 'The taskId if this is a task, or the eventId if this is an event, or empty for breaks.',
           ),
         },
         requiredProperties: ['startTime', 'endTime', 'title', 'type'],
@@ -53,21 +54,36 @@ class SchedulerAgent {
       'deadline': t.deadline.toIso8601String(),
     }).toList();
 
+    final eventsJson = events.map((e) => {
+      'id': e.eventId,
+      'title': e.title,
+      'startTime': e.startTime.toIso8601String(),
+      'endTime': e.endTime.toIso8601String(),
+      'isAllDay': e.isAllDay,
+    }).toList();
+
     final prompt = '''
 You are an expert AI Scheduler.
 Current Time: ${now.toIso8601String()}
 End of Work Day: ${eod.toIso8601String()}
 
-Please generate a realistic schedule for the remainder of the day using the following tasks:
+Please generate a realistic schedule for the remainder of the day.
+
+HARD CONSTRAINTS (Google Calendar Events):
+You MUST include these existing calendar events in the final timeline exactly at their specified times. The type for these MUST be "event".
+${jsonEncode(eventsJson)}
+
+TASKS TO SCHEDULE:
+Schedule as many of these tasks as possible around the calendar events above. Their type MUST be "task".
 ${jsonEncode(tasksJson)}
 
 Rules:
 1. Schedule high priority and close-deadline tasks first.
 2. Add short 5-15 minute breaks between long tasks.
 3. If tasks take more time than available today, schedule the most critical ones today and ignore the rest.
-4. Ensure `startTime` and `endTime` are consecutive and do not overlap.
-5. The first block should start close to the current time.
-6. The `taskId` must perfectly match the provided task id.
+4. Ensure `startTime` and `endTime` are consecutive and do NOT overlap with each other or with Calendar Events.
+5. You MUST wrap around existing calendar events. Do NOT schedule a task during an event.
+6. The `taskId` must perfectly match the provided task id or event id.
 ''';
 
     try {

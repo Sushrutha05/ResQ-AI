@@ -12,7 +12,20 @@
           "package_name": "com.resqai.resq_ai"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "326913644158-9g0c9ej168avgpet72nnqva6nnb4e9ah.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.resqai.resq_ai",
+            "certificate_hash": "1e5584fb5a1c0789d7b021e3c21b8a88d741f164"
+          }
+        },
+        {
+          "client_id": "326913644158-gbu33qpk5srpbpqdfnovmiiusdrhm654.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDZQm_Loi4kcDYldC3MsbUqf5btESBrmhc"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "326913644158-gbu33qpk5srpbpqdfnovmiiusdrhm654.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "326913644158-0rk9g6o1fvergjkeki3fvg34aki76emp.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.resqai.resqAi"
+              }
+            }
+          ]
         }
       }
     }

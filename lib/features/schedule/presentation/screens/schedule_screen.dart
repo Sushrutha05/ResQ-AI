@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:resq_ai/ai/scheduler/scheduler_provider.dart';
 import 'package:resq_ai/features/tasks/presentation/providers/task_providers.dart';
+import 'package:resq_ai/features/calendar/presentation/providers/calendar_providers.dart';
+import 'package:resq_ai/features/calendar/domain/entities/calendar_event.dart';
 
 class ScheduleScreen extends ConsumerStatefulWidget {
   const ScheduleScreen({super.key});
@@ -14,16 +16,12 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   bool _isGenerating = false;
 
   Future<void> _generateSchedule() async {
-    print('DEBUG: _generateSchedule started.');
     final tasksList = await ref.read(userTasksStreamProvider.future);
-    print('DEBUG: Fetched ${tasksList.length} total tasks from stream.');
-    final pendingTasks = tasksList.where((t) => t.status != 'Completed').toList();
-    print('DEBUG: Filtered to ${pendingTasks.length} pending tasks.');
+    final pendingTasks = tasksList.where((t) => t.status != 'Completed' && t.status != 'Delayed').toList();
     
     if (pendingTasks.isEmpty) {
-      print('DEBUG: No pending tasks. Aborting.');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No pending tasks to schedule!')),
+        const SnackBar(content: Text('No active tasks to schedule!')),
       );
       return;
     }
@@ -31,10 +29,16 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     setState(() => _isGenerating = true);
     
     try {
-      print('DEBUG: Calling scheduler agent...');
+      // Try to fetch calendar events, default to empty if it fails (e.g. not signed in)
+      List<CalendarEvent> events = [];
+      try {
+        events = await ref.read(todayCalendarEventsProvider.future);
+      } catch (e) {
+        print('Calendar fetch failed, proceeding without events: $e');
+      }
+
       final scheduler = ref.read(schedulerAgentProvider);
-      final schedule = await scheduler.generateSchedule(pendingTasks);
-      print('DEBUG: Generated ${schedule.length} schedule blocks. Updating state.');
+      final schedule = await scheduler.generateSchedule(pendingTasks, events);
       
       ref.read(generatedScheduleProvider.notifier).updateSchedule(schedule);
       
@@ -61,6 +65,30 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       appBar: AppBar(
         title: const Text('AI Scheduler'),
         actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 10.0),
+            child: FilledButton.tonalIcon(
+              icon: const Icon(Icons.sync, size: 18),
+              label: const Text('Sync Calendar'),
+              onPressed: () async {
+                try {
+                  await ref.read(googleSignInProvider).signIn();
+                  ref.invalidate(todayCalendarEventsProvider);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Google Calendar Synced Successfully!')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Calendar Sync Failed: $e')),
+                    );
+                  }
+                }
+              },
+            ),
+          ),
           if (schedule.isNotEmpty && !_isGenerating)
             IconButton(
               icon: const Icon(Icons.refresh),
@@ -103,24 +131,25 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                   itemBuilder: (context, index) {
                     final block = schedule[index];
                     final isBreak = block.type == 'break';
+                    final isEvent = block.type == 'event';
                     
                     final startStr = '${block.startTime.hour.toString().padLeft(2, '0')}:${block.startTime.minute.toString().padLeft(2, '0')}';
                     final endStr = '${block.endTime.hour.toString().padLeft(2, '0')}:${block.endTime.minute.toString().padLeft(2, '0')}';
                     
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
-                      color: isBreak ? theme.colorScheme.tertiaryContainer.withAlpha(50) : theme.colorScheme.surfaceContainer,
+                      color: isBreak ? theme.colorScheme.tertiaryContainer.withAlpha(50) : (isEvent ? theme.colorScheme.secondaryContainer.withAlpha(80) : theme.colorScheme.surfaceContainer),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: BorderSide(
-                          color: isBreak ? theme.colorScheme.tertiary.withAlpha(100) : theme.colorScheme.outlineVariant,
+                          color: isBreak ? theme.colorScheme.tertiary.withAlpha(100) : (isEvent ? theme.colorScheme.secondary.withAlpha(100) : theme.colorScheme.outlineVariant),
                         ),
                       ),
                       child: ListTile(
                         leading: Icon(
-                          isBreak ? Icons.coffee : Icons.task_alt,
-                          color: isBreak ? theme.colorScheme.tertiary : theme.colorScheme.primary,
+                          isBreak ? Icons.coffee : (isEvent ? Icons.event : Icons.task_alt),
+                          color: isBreak ? theme.colorScheme.tertiary : (isEvent ? theme.colorScheme.secondary : theme.colorScheme.primary),
                         ),
                         title: Text(
                           block.title,
@@ -135,14 +164,14 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                             : Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: theme.colorScheme.primaryContainer,
+                                  color: isEvent ? theme.colorScheme.secondary : theme.colorScheme.primaryContainer,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  'Focus Block',
+                                  isEvent ? 'Calendar Event' : 'Focus Block',
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: theme.colorScheme.onPrimaryContainer,
+                                    color: isEvent ? theme.colorScheme.onSecondary : theme.colorScheme.onPrimaryContainer,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),

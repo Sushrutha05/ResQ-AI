@@ -2,7 +2,7 @@ class ScheduleBlock {
   final DateTime startTime;
   final DateTime endTime;
   final String title;
-  final String type; // 'task' or 'break'
+  final String type; // 'task', 'break', or 'event'
   final String? taskId;
 
   ScheduleBlock({
