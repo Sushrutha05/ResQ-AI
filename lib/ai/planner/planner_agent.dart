@@ -80,8 +80,10 @@ class PlannerAgent {
     final prompt =
         'Break down the following task into manageable, sequential subtasks.\n'
         'Task Title: ${task.title}\n'
-        'Description: ${task.description}\n'
-        'Ensure the total duration of subtasks roughly aligns with the task scope.';
+        'Description: ${task.description}\n\n'
+        'RULES:\n'
+        '1. Ensure the total duration of subtasks roughly aligns with the task scope.\n'
+        '2. If the task is extremely trivial, takes less than 15 minutes, or is random gibberish (e.g. "asdfg"), do not generate any subtasks. Return an empty array [].';
 
     try {
       final response = await _model.generateContent(

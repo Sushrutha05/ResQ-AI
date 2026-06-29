@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:resq_ai/features/tasks/domain/entities/task_entity.dart';
 import 'package:resq_ai/features/tasks/presentation/providers/task_providers.dart';
 import 'package:resq_ai/features/tasks/presentation/widgets/task_form_sheet.dart';
+import 'package:resq_ai/ai/risk/risk_provider.dart';
 
 class TasksScreen extends ConsumerStatefulWidget {
   const TasksScreen({super.key});
@@ -13,6 +14,91 @@ class TasksScreen extends ConsumerStatefulWidget {
 
 class _TasksScreenState extends ConsumerState<TasksScreen> {
   String _statusFilter = 'All';
+  String? _assessingRiskId;
+
+  void _showSubtasksSheet(BuildContext context, TaskEntity task) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final theme = Theme.of(context);
+            
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Subtasks for "${task.title}"',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const Divider(),
+                  if (task.subtasks.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text('No subtasks available.'),
+                    )
+                  else
+                    ...task.subtasks.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final subtask = entry.value;
+                      return CheckboxListTile(
+                        value: subtask.isCompleted,
+                        title: Text(
+                          subtask.title,
+                          style: TextStyle(
+                            decoration: subtask.isCompleted ? TextDecoration.lineThrough : null,
+                            color: subtask.isCompleted ? theme.colorScheme.onSurfaceVariant : null,
+                          ),
+                        ),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        onChanged: (val) {
+                          if (val == null) return;
+                          
+                          // Update locally for instant feedback in modal
+                          setModalState(() {
+                            final updatedSubtasks = List<SubtaskEntity>.from(task.subtasks);
+                            updatedSubtasks[idx] = subtask.copyWith(isCompleted: val);
+                            
+                            // Save to Firestore
+                            final updatedTask = task.copyWith(
+                              subtasks: updatedSubtasks,
+                              updatedAt: DateTime.now(),
+                            );
+                            ref.read(taskControllerProvider.notifier).updateTask(updatedTask);
+                          });
+                        },
+                      );
+                    }).toList(),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   Color _getPriorityColor(String priority) {
     switch (priority) {
@@ -22,6 +108,39 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
         return Colors.orange;
       default:
         return Colors.blue;
+    }
+  }
+
+  Color _getRiskColor(int score) {
+    if (score >= 80) return Colors.green;
+    if (score >= 50) return Colors.orange;
+    return Colors.red;
+  }
+
+  Future<void> _assessRisk(TaskEntity task) async {
+    setState(() => _assessingRiskId = task.taskId);
+    try {
+      final riskAgent = ref.read(riskAgentProvider);
+      final assessment = await riskAgent.assessTaskRisk(task);
+      
+      final updatedTask = task.copyWith(
+        riskScore: assessment.score,
+        riskExplanation: assessment.explanation,
+      );
+      
+      await ref.read(taskControllerProvider.notifier).updateTask(updatedTask);
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Risk assessed: ${assessment.score}%')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error assessing risk: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _assessingRiskId = null);
     }
   }
 
@@ -184,6 +303,54 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                                           ),
                                         ),
                                       ),
+                                      if (task.riskScore != null) ...[
+                                        Tooltip(
+                                          message: task.riskExplanation ?? '',
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: _getRiskColor(task.riskScore!).withAlpha(30),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              'Risk: ${task.riskScore}%',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: _getRiskColor(task.riskScore!),
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                      if (task.subtasks != null && task.subtasks!.isNotEmpty) ...[
+                                        InkWell(
+                                          onTap: () => _showSubtasksSheet(context, task),
+                                          borderRadius: BorderRadius.circular(4),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.format_list_bulleted,
+                                                  size: 13,
+                                                  color: theme.colorScheme.primary,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  '${task.subtasks!.length} subtasks',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: theme.colorScheme.primary,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                       Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
@@ -207,13 +374,32 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                                 ],
                               ),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.edit_outlined),
-                              onPressed: () => _showFormSheet(task),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                              onPressed: () => _confirmDelete(task.taskId),
+                            _assessingRiskId == task.taskId
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12.0),
+                                  child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                                )
+                              : IconButton(
+                                  icon: const Icon(Icons.analytics_outlined, color: Colors.purple),
+                                  tooltip: 'Assess Risk',
+                                  onPressed: () => _assessRisk(task),
+                                ),
+                            PopupMenuButton<String>(
+                              icon: const Icon(Icons.more_vert),
+                              onSelected: (value) {
+                                if (value == 'edit') _showFormSheet(task);
+                                if (value == 'delete') _confirmDelete(task.taskId);
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(children: [Icon(Icons.edit_outlined, size: 20), SizedBox(width: 8), Text('Edit')]),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(children: [Icon(Icons.delete_outline, size: 20, color: Colors.redAccent), SizedBox(width: 8), Text('Delete', style: TextStyle(color: Colors.redAccent))]),
+                                ),
+                              ],
                             ),
                           ],
                         ),

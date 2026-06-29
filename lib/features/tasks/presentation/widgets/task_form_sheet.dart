@@ -24,7 +24,7 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
   late int _estimatedDuration;
   bool _isGenerating = false;
   bool _isBreakingDown = false;
-  List<String> _subtasks = [];
+  List<SubtaskEntity> _subtasks = [];
 
   final List<String> _priorities = ['Low', 'Medium', 'High'];
   final List<int> _durationOptions = [15, 30, 45, 60, 90, 120, 180, 240, 300, 360];
@@ -226,7 +226,9 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
   }
 
   Future<void> _breakdownTask() async {
+    print('DEBUG: _breakdownTask started.');
     if (_titleController.text.trim().isEmpty) {
+      print('DEBUG: Empty title.');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a task title first.')),
       );
@@ -235,6 +237,7 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
     setState(() => _isBreakingDown = true);
 
     try {
+      print('DEBUG: Calling plannerAgent.generateSubtasks...');
       final plannerAgent = ref.read(plannerAgentProvider);
       final tempTask = TaskEntity(
         taskId: '',
@@ -247,13 +250,23 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
       );
 
       final generatedSubtasks = await plannerAgent.generateSubtasks(tempTask);
+      print('DEBUG: Generated ${generatedSubtasks.length} subtasks.');
       
       if (!mounted) return;
-      setState(() {
-        _subtasks.addAll(generatedSubtasks.map((s) => s.title));
-      });
       
-    } catch (e) {
+      if (generatedSubtasks.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Task is too simple or unclear to break down.')),
+        );
+      } else {
+        setState(() {
+          _subtasks.addAll(generatedSubtasks.map((s) => SubtaskEntity(title: s.title, isCompleted: false)));
+        });
+        print('DEBUG: _subtasks length is now ${_subtasks.length}');
+      }
+      
+    } catch (e, st) {
+      print('DEBUG: Error in _breakdownTask: $e\n$st');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error breaking down task: $e')),
@@ -377,11 +390,21 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
                   child: Column(
                     children: _subtasks.asMap().entries.map((entry) {
                       final idx = entry.key;
-                      final title = entry.value;
+                      final subtask = entry.value;
                       return ListTile(
                         dense: true,
-                        leading: const Icon(Icons.check_circle_outline, size: 18),
-                        title: Text(title, style: const TextStyle(fontSize: 14)),
+                        leading: Icon(
+                          subtask.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+                          size: 18,
+                          color: subtask.isCompleted ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                        ),
+                        title: Text(
+                          subtask.title,
+                          style: TextStyle(
+                            fontSize: 14,
+                            decoration: subtask.isCompleted ? TextDecoration.lineThrough : null,
+                          ),
+                        ),
                         trailing: IconButton(
                           icon: const Icon(Icons.close, size: 16),
                           onPressed: () {

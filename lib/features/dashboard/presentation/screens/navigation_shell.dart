@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:resq_ai/features/tasks/presentation/screens/tasks_screen.dart';
+import 'package:resq_ai/features/schedule/presentation/screens/schedule_screen.dart';
 import 'dashboard_screen.dart';
 import 'placeholder_screens.dart';
 
@@ -16,7 +17,7 @@ class _NavigationShellState extends State<NavigationShell> {
   final List<Widget> _screens = [
     const DashboardScreen(),
     const TasksScreen(),
-    const CalendarScreen(),
+    const ScheduleScreen(),
     const AICoachScreen(),
     const ProfileScreen(),
   ];

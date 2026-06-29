@@ -22,6 +22,17 @@ class TimestampConverter implements JsonConverter<DateTime, dynamic> {
 }
 
 @freezed
+abstract class SubtaskEntity with _$SubtaskEntity {
+  const factory SubtaskEntity({
+    required String title,
+    @Default(false) bool isCompleted,
+  }) = _SubtaskEntity;
+
+  factory SubtaskEntity.fromJson(Map<String, dynamic> json) =>
+      _$SubtaskEntityFromJson(json);
+}
+
+@freezed
 abstract class TaskEntity with _$TaskEntity {
   const TaskEntity._();
 
@@ -37,7 +48,9 @@ abstract class TaskEntity with _$TaskEntity {
     @Default(0) int actualDuration,
     @Default(0) int progress,
     @Default('user') String createdBy,
-    @Default([]) List<String> subtasks,
+    @Default([]) List<SubtaskEntity> subtasks,
+    int? riskScore,
+    String? riskExplanation,
     @TimestampConverter() required DateTime createdAt,
     @TimestampConverter() required DateTime updatedAt,
   }) = _TaskEntity;
