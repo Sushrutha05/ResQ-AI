@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:resq_ai/ai/coach/coach_models.dart';
 import 'package:resq_ai/ai/coach/coach_provider.dart';
 import 'package:resq_ai/features/tasks/presentation/providers/task_providers.dart';
+import 'package:resq_ai/features/profile/presentation/providers/settings_provider.dart';
 
 class CoachScreen extends ConsumerStatefulWidget {
   const CoachScreen({super.key});
@@ -32,7 +33,8 @@ class _CoachScreenState extends ConsumerState<CoachScreen> {
     try {
       final tasks = ref.read(userTasksStreamProvider).value ?? [];
       final coachAgent = ref.read(coachAgentProvider);
-      final briefing = await coachAgent.generateDailyBriefing(tasks);
+      final isStrict = ref.read(coachStrictnessProvider);
+      final briefing = await coachAgent.generateDailyBriefing(tasks, isStrict: isStrict);
 
       if (mounted) {
         setState(() {

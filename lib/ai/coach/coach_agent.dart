@@ -15,7 +15,7 @@ class CoachAgent {
     _model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: apiKey);
   }
 
-  Future<DailyBriefing> generateDailyBriefing(List<TaskEntity> tasks) async {
+  Future<DailyBriefing> generateDailyBriefing(List<TaskEntity> tasks, {bool isStrict = false}) async {
     final pendingTasks = tasks.where((t) => t.status != 'Completed').toList();
     final highRiskTasks =
         pendingTasks.where((t) => (t.riskScore ?? 0) > 40).toList();
@@ -43,8 +43,9 @@ class CoachAgent {
           description: 'A punchy, energetic, and short greeting.',
         ),
         'motivationText': Schema.string(
-          description:
-              'A short paragraph acknowledging their workload and motivating them. Act as a strict but encouraging accountability partner.',
+          description: isStrict 
+              ? 'A short paragraph acknowledging their workload. Act as a STRICT, NO-NONSENSE, and demanding accountability partner. Give tough love.'
+              : 'A short paragraph acknowledging their workload and motivating them. Act as a GENTLE, ENCOURAGING, and supportive accountability partner. Be highly empathetic.',
         ),
         'topRecommendation': Schema.string(
           description:
@@ -52,7 +53,7 @@ class CoachAgent {
         ),
         'impactStatement': Schema.string(
           description:
-              'A data-driven or logical statement on how starting now improves their success chance (e.g. "If you begin now, your completion chance increases from 52% to 91%").',
+              'A data-driven or logical statement on how starting now improves their success chance.',
         ),
       },
       requiredProperties: [
@@ -63,11 +64,15 @@ class CoachAgent {
       ],
     );
 
-    final prompt = '''
-You are the "ResQ AI Coach", an intelligent, no-nonsense accountability partner.
+    final prompt = isStrict ? '''
+You are the "ResQ AI Coach", an intelligent, NO-NONSENSE accountability partner.
 Your goal is to give the user a quick daily briefing. Look at their tasks and high-risk tasks.
-Don't be overly polite. Be direct, motivating, and focus on action.
-
+DO NOT BE POLITE. Be brutally honest, demanding, and use tough love to get them to act.
+$taskContext
+''' : '''
+You are the "ResQ AI Coach", an intelligent, GENTLE, and ENCOURAGING accountability partner.
+Your goal is to give the user a quick daily briefing. Look at their tasks and high-risk tasks.
+Be extremely supportive, warm, and empathetic to help them build momentum.
 $taskContext
 ''';
 
