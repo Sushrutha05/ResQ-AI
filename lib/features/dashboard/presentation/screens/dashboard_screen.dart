@@ -8,6 +8,7 @@ import '../../../authentication/presentation/providers/auth_provider.dart';
 import 'package:resq_ai/ai/scheduler/scheduler_provider.dart';
 import 'package:resq_ai/ai/scheduler/scheduler_models.dart';
 import 'package:resq_ai/ai/rescue/rescue_provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../widgets/rescue_bottom_sheet.dart';
 import 'navigation_shell.dart';
 
@@ -58,52 +59,49 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: ListView(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Welcome Greeting
-              Text(
-                '${_getGreeting()}, ${displayName[0].toUpperCase()}${displayName.substring(1)}',
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
-                ),
+          children: [
+            // 1. Welcome Greeting
+            Text(
+              '${_getGreeting()}, ${displayName[0].toUpperCase()}${displayName.substring(1)}',
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                letterSpacing: -0.5,
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Here is your intelligent schedule overview for today.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+            ).animate().fade().slideY(begin: -0.2),
+            const SizedBox(height: 4),
+            Text(
+              'Here is your intelligent schedule overview for today.',
+              style: TextStyle(
+                fontSize: 14,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(height: 12),
+            ).animate().fade(delay: 100.ms).slideY(begin: -0.2),
+            const SizedBox(height: 12),
 
-              // RESCUE BANNER (If score < 40% or if Rescue Mode is Active)
-              if (_calculateSuccessScore(tasks) <= 0.40 || ref.watch(isRescueModeActiveProvider))
-                _buildRescueBanner(context, tasks, ref),
+            // RESCUE BANNER (If score < 40% or if Rescue Mode is Active)
+            if (_calculateSuccessScore(tasks) <= 0.40 || ref.watch(isRescueModeActiveProvider))
+              _buildRescueBanner(context, tasks, ref).animate().fade().scale(),
 
-              // 2. Success Score Card
-              _buildSuccessScoreCard(context, tasks),
+            // 2. Success Score Card
+            _buildSuccessScoreCard(context, tasks).animate().fade(delay: 200.ms).slideY(begin: 0.2),
+            const SizedBox(height: 24),
+
+            // 3. Today's Timeline
+            _buildTimelineSection(context, schedule).animate().fade(delay: 300.ms).slideX(begin: 0.1),
+            const SizedBox(height: 24),
+
+            // 4. AI Recommendations Card
+            if (!isDismissed) ...[
+              _buildAIRecommendations(context, ref, tasks).animate().fade(delay: 400.ms).slideX(begin: -0.1),
               const SizedBox(height: 24),
-
-              // 3. Today's Timeline
-              _buildTimelineSection(context, schedule),
-              const SizedBox(height: 24),
-
-              // 4. AI Recommendations Card
-              if (!isDismissed) ...[
-                _buildAIRecommendations(context, ref, tasks),
-                const SizedBox(height: 24),
-              ],
-
-              // 5. High Risk Tasks
-              _buildHighRiskTasksSection(context, tasks),
             ],
-          ),
+
+            // 5. High Risk Tasks
+            _buildHighRiskTasksSection(context, tasks).animate().fade(delay: 500.ms).slideY(begin: 0.2),
+          ],
         ),
       ),
     );

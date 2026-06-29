@@ -4,6 +4,7 @@ import 'package:resq_ai/features/tasks/domain/entities/task_entity.dart';
 import 'package:resq_ai/features/tasks/presentation/providers/task_providers.dart';
 import 'package:resq_ai/features/tasks/presentation/widgets/task_form_sheet.dart';
 import 'package:resq_ai/ai/risk/risk_provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class TasksScreen extends ConsumerStatefulWidget {
   const TasksScreen({super.key});
@@ -214,310 +215,356 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                       return t.status == _statusFilter;
                     }).toList();
 
-                if (filteredTasks.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.task_alt,
-                            size: 64,
-                            color: theme.colorScheme.onSurfaceVariant.withAlpha(
-                              100,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'No tasks found',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _statusFilter == 'All'
-                                ? "Let's create your first task by tapping the + button!"
-                                : "No tasks match your selected filter.",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  itemCount: filteredTasks.length,
-                  itemBuilder: (context, index) {
-                    final task = filteredTasks[index];
-                    final priorityColor = _getPriorityColor(task.priority);
-                    final isCompleted = task.status == 'Completed';
-
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12.0,
-                          vertical: 12.0,
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Checkbox(
-                              value: isCompleted,
-                              onChanged: (val) {
-                                if (val != null) {
-                                  ref
-                                      .read(taskControllerProvider.notifier)
-                                      .updateTask(
-                                        task.copyWith(
-                                          status: val ? 'Completed' : 'Pending',
-                                          progress: val ? 100 : 0,
-                                        ),
-                                      );
-                                }
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child:
+                      filteredTasks.isEmpty
+                          ? Center(
+                            key: const ValueKey('empty_state'),
+                            child: Padding(
+                              padding: const EdgeInsets.all(32.0),
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text(
-                                    task.title,
+                                  Icon(
+                                    Icons.task_alt,
+                                    size: 64,
+                                    color: theme.colorScheme.onSurfaceVariant
+                                        .withAlpha(100),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'No tasks found',
                                     style: TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 20,
                                       fontWeight: FontWeight.bold,
-                                      decoration:
-                                          isCompleted
-                                              ? TextDecoration.lineThrough
-                                              : null,
-                                      color:
-                                          isCompleted
-                                              ? theme
-                                                  .colorScheme
-                                                  .onSurfaceVariant
-                                              : null,
                                     ),
                                   ),
-                                  if (task.description.isNotEmpty) ...[
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      task.description,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color:
-                                            theme.colorScheme.onSurfaceVariant,
-                                      ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _statusFilter == 'All'
+                                        ? "Let's create your first task by tapping the + button!"
+                                        : "No tasks match your selected filter.",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: theme.colorScheme.onSurfaceVariant,
                                     ),
-                                  ],
-                                  Wrap(
-                                    spacing: 12,
-                                    runSpacing: 4,
-                                    crossAxisAlignment:
-                                        WrapCrossAlignment.center,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: priorityColor.withAlpha(30),
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          task.priority,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: priorityColor,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                      if (task.riskScore != null) ...[
-                                        Tooltip(
-                                          message: task.riskExplanation ?? '',
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: _getRiskColor(
-                                                task.riskScore!,
-                                              ).withAlpha(30),
-                                              borderRadius:
-                                                  BorderRadius.circular(6),
-                                            ),
-                                            child: Text(
-                                              'Risk: ${task.riskScore}%',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: _getRiskColor(
-                                                  task.riskScore!,
-                                                ),
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                      if (task.subtasks.isNotEmpty) ...[
-                                        InkWell(
-                                          onTap:
-                                              () => _showSubtasksSheet(
-                                                context,
-                                                task,
-                                              ),
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 4,
-                                              vertical: 2,
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  Icons.format_list_bulleted,
-                                                  size: 13,
-                                                  color:
-                                                      theme.colorScheme.primary,
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  '${task.subtasks.length} subtasks',
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    color:
-                                                        theme
-                                                            .colorScheme
-                                                            .primary,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.calendar_today,
-                                            size: 13,
-                                            color:
-                                                theme
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            task.deadline
-                                                .toLocal()
-                                                .toString()
-                                                .substring(0, 16),
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color:
-                                                  theme
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
                                   ),
                                 ],
                               ),
                             ),
-                            _assessingRiskId == task.taskId
-                                ? const Padding(
-                                  padding: EdgeInsets.all(12.0),
-                                  child: SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  ),
-                                )
-                                : IconButton(
-                                  icon: const Icon(
-                                    Icons.analytics_outlined,
-                                    color: Colors.purple,
-                                  ),
-                                  tooltip: 'Assess Risk',
-                                  onPressed: () => _assessRisk(task),
-                                ),
-                            PopupMenuButton<String>(
-                              icon: const Icon(Icons.more_vert),
-                              onSelected: (value) {
-                                if (value == 'edit') _showFormSheet(task);
-                                if (value == 'delete')
-                                  _confirmDelete(task.taskId);
-                              },
-                              itemBuilder:
-                                  (context) => [
-                                    const PopupMenuItem(
-                                      value: 'edit',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.edit_outlined, size: 20),
-                                          SizedBox(width: 8),
-                                          Text('Edit'),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'delete',
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.delete_outline,
-                                            size: 20,
-                                            color: Colors.redAccent,
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Delete',
-                                            style: TextStyle(
-                                              color: Colors.redAccent,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
+                          )
+                          : ListView.builder(
+                            key: ValueKey('list_$_statusFilter'),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
                             ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                            itemCount: filteredTasks.length,
+                            itemBuilder: (context, index) {
+                              final task = filteredTasks[index];
+                              final priorityColor = _getPriorityColor(
+                                task.priority,
+                              );
+                              final isCompleted = task.status == 'Completed';
+
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                elevation: 1,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12.0,
+                                    vertical: 12.0,
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Checkbox(
+                                        value: isCompleted,
+                                        onChanged: (val) {
+                                          if (val != null) {
+                                            ref
+                                                .read(
+                                                  taskControllerProvider
+                                                      .notifier,
+                                                )
+                                                .updateTask(
+                                                  task.copyWith(
+                                                    status:
+                                                        val
+                                                            ? 'Completed'
+                                                            : 'Pending',
+                                                    progress: val ? 100 : 0,
+                                                  ),
+                                                );
+                                          }
+                                        },
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              task.title,
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                decoration:
+                                                    isCompleted
+                                                        ? TextDecoration
+                                                            .lineThrough
+                                                        : null,
+                                                color:
+                                                    isCompleted
+                                                        ? theme
+                                                            .colorScheme
+                                                            .onSurfaceVariant
+                                                        : null,
+                                              ),
+                                            ),
+                                            if (task
+                                                .description
+                                                .isNotEmpty) ...[
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                task.description,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color:
+                                                      theme
+                                                          .colorScheme
+                                                          .onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ],
+                                            Wrap(
+                                              spacing: 12,
+                                              runSpacing: 4,
+                                              crossAxisAlignment:
+                                                  WrapCrossAlignment.center,
+                                              children: [
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 2,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: priorityColor
+                                                        .withAlpha(30),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          6,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    task.priority,
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: priorityColor,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                                if (task.riskScore != null) ...[
+                                                  Tooltip(
+                                                    message:
+                                                        task.riskExplanation ??
+                                                        '',
+                                                    child: Container(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 2,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        color: _getRiskColor(
+                                                          task.riskScore!,
+                                                        ).withAlpha(30),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              6,
+                                                            ),
+                                                      ),
+                                                      child: Text(
+                                                        'Risk: ${task.riskScore}%',
+                                                        style: TextStyle(
+                                                          fontSize: 11,
+                                                          color: _getRiskColor(
+                                                            task.riskScore!,
+                                                          ),
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                                if (task
+                                                    .subtasks
+                                                    .isNotEmpty) ...[
+                                                  InkWell(
+                                                    onTap:
+                                                        () =>
+                                                            _showSubtasksSheet(
+                                                              context,
+                                                              task,
+                                                            ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          4,
+                                                        ),
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 4,
+                                                            vertical: 2,
+                                                          ),
+                                                      child: Row(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          Icon(
+                                                            Icons
+                                                                .format_list_bulleted,
+                                                            size: 13,
+                                                            color:
+                                                                theme
+                                                                    .colorScheme
+                                                                    .primary,
+                                                          ),
+                                                          const SizedBox(
+                                                            width: 4,
+                                                          ),
+                                                          Text(
+                                                            '${task.subtasks.length} subtasks',
+                                                            style: TextStyle(
+                                                              fontSize: 11,
+                                                              color:
+                                                                  theme
+                                                                      .colorScheme
+                                                                      .primary,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                                Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.calendar_today,
+                                                      size: 13,
+                                                      color:
+                                                          theme
+                                                              .colorScheme
+                                                              .onSurfaceVariant,
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      task.deadline
+                                                          .toLocal()
+                                                          .toString()
+                                                          .substring(0, 16),
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color:
+                                                            theme
+                                                                .colorScheme
+                                                                .onSurfaceVariant,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      _assessingRiskId == task.taskId
+                                          ? const Padding(
+                                            padding: EdgeInsets.all(12.0),
+                                            child: SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            ),
+                                          )
+                                          : IconButton(
+                                            icon: const Icon(
+                                              Icons.analytics_outlined,
+                                              color: Colors.purple,
+                                            ),
+                                            tooltip: 'Assess Risk',
+                                            onPressed: () => _assessRisk(task),
+                                          ),
+                                      PopupMenuButton<String>(
+                                        icon: const Icon(Icons.more_vert),
+                                        onSelected: (value) {
+                                          if (value == 'edit')
+                                            _showFormSheet(task);
+                                          if (value == 'delete')
+                                            _confirmDelete(task.taskId);
+                                        },
+                                        itemBuilder:
+                                            (context) => [
+                                              const PopupMenuItem(
+                                                value: 'edit',
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.edit_outlined,
+                                                      size: 20,
+                                                    ),
+                                                    SizedBox(width: 8),
+                                                    Text('Edit'),
+                                                  ],
+                                                ),
+                                              ),
+                                              const PopupMenuItem(
+                                                value: 'delete',
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.delete_outline,
+                                                      size: 20,
+                                                      color: Colors.redAccent,
+                                                    ),
+                                                    SizedBox(width: 8),
+                                                    Text(
+                                                      'Delete',
+                                                      style: TextStyle(
+                                                        color: Colors.redAccent,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                      ),
+                                    ],
+                                  ),
+                                ).animate().fade().slideX(begin: 0.05),
+                              );
+                            },
+                          ),
                 );
               },
               error:
