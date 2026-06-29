@@ -1,18 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:resq_ai/features/tasks/presentation/screens/tasks_screen.dart';
 import 'package:resq_ai/features/schedule/presentation/screens/schedule_screen.dart';
 import 'dashboard_screen.dart';
 import 'placeholder_screens.dart';
 
-class NavigationShell extends StatefulWidget {
+class NavigationIndexNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void setIndex(int index) {
+    state = index;
+  }
+}
+
+final navigationIndexProvider = NotifierProvider<NavigationIndexNotifier, int>(NavigationIndexNotifier.new);
+
+class NavigationShell extends ConsumerStatefulWidget {
   const NavigationShell({super.key});
 
   @override
-  State<NavigationShell> createState() => _NavigationShellState();
+  ConsumerState<NavigationShell> createState() => _NavigationShellState();
 }
 
-class _NavigationShellState extends State<NavigationShell> {
-  int _selectedIndex = 0;
+class _NavigationShellState extends ConsumerState<NavigationShell> {
 
   final List<Widget> _screens = [
     const DashboardScreen(),
@@ -55,17 +66,17 @@ class _NavigationShellState extends State<NavigationShell> {
     final theme = Theme.of(context);
     final width = MediaQuery.of(context).size.width;
     final isLargeScreen = width >= 600;
+    
+    final selectedIndex = ref.watch(navigationIndexProvider);
 
     return Scaffold(
       body: Row(
         children: [
           if (isLargeScreen)
             NavigationRail(
-              selectedIndex: _selectedIndex,
+              selectedIndex: selectedIndex,
               onDestinationSelected: (index) {
-                setState(() {
-                  _selectedIndex = index;
-                });
+                ref.read(navigationIndexProvider.notifier).setIndex(index);
               },
               labelType: NavigationRailLabelType.all,
               backgroundColor: theme.colorScheme.surfaceContainerLow,
@@ -100,8 +111,8 @@ class _NavigationShellState extends State<NavigationShell> {
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
               child: KeyedSubtree(
-                key: ValueKey<int>(_selectedIndex),
-                child: _screens[_selectedIndex],
+                key: ValueKey<int>(selectedIndex),
+                child: _screens[selectedIndex],
               ),
             ),
           ),
@@ -110,11 +121,9 @@ class _NavigationShellState extends State<NavigationShell> {
       bottomNavigationBar:
           !isLargeScreen
               ? NavigationBar(
-                selectedIndex: _selectedIndex,
+                selectedIndex: selectedIndex,
                 onDestinationSelected: (index) {
-                  setState(() {
-                    _selectedIndex = index;
-                  });
+                  ref.read(navigationIndexProvider.notifier).setIndex(index);
                 },
                 backgroundColor: theme.colorScheme.surfaceContainerLow,
                 indicatorColor: theme.colorScheme.primaryContainer,

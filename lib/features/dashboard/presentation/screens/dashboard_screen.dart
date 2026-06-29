@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:resq_ai/features/tasks/domain/entities/task_entity.dart';
+import 'package:resq_ai/features/tasks/presentation/providers/task_providers.dart';
 import '../../../authentication/presentation/providers/auth_provider.dart';
+import '../../tasks/presentation/providers/task_providers.dart';
+import 'package:resq_ai/ai/scheduler/scheduler_provider.dart';
+import 'package:resq_ai/ai/scheduler/scheduler_models.dart';
+import 'navigation_shell.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -18,6 +24,10 @@ class DashboardScreen extends ConsumerWidget {
     final userEmail = authState.value?.email ?? 'Developer';
     final displayName = userEmail.split('@')[0];
     final theme = Theme.of(context);
+
+    final tasksAsync = ref.watch(userTasksStreamProvider);
+    final tasks = tasksAsync.value ?? [];
+    final schedule = ref.watch(generatedScheduleProvider);
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -62,19 +72,19 @@ class DashboardScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // 2. Today's Success Score Card
-              _buildSuccessScoreCard(context),
+              _buildSuccessScoreCard(context, tasks),
               const SizedBox(height: 24),
 
               // 3. Today's Timeline
-              _buildTimelineSection(context),
+              _buildTimelineSection(context, schedule),
               const SizedBox(height: 24),
 
               // 4. AI Recommendations Card
-              _buildAIRecommendations(context),
+              _buildAIRecommendations(context, ref, tasks),
               const SizedBox(height: 24),
 
               // 5. High Risk Tasks
-              _buildHighRiskTasksSection(context),
+              _buildHighRiskTasksSection(context, tasks),
             ],
           ),
         ),
@@ -82,8 +92,25 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSuccessScoreCard(BuildContext context) {
+  Widget _buildSuccessScoreCard(BuildContext context, List<TaskEntity> tasks) {
     final theme = Theme.of(context);
+
+    double score = 1.0;
+    if (tasks.isNotEmpty) {
+      int totalTasks = tasks.length;
+      int completed = tasks.where((t) => t.status == 'Completed').length;
+      int highRisk = tasks.where((t) => (t.riskScore ?? 0) > 60).length;
+
+      double completionFactor = completed / totalTasks;
+      double riskPenalty = (highRisk / totalTasks) * 0.4; // up to 40% penalty
+
+      score = (0.6 + (completionFactor * 0.4)) - riskPenalty;
+      if (score < 0.1) score = 0.1;
+      if (score > 1.0) score = 1.0;
+    }
+
+    final scorePercent = (score * 100).toInt();
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -99,15 +126,17 @@ class DashboardScreen extends ConsumerWidget {
                   width: 70,
                   height: 70,
                   child: CircularProgressIndicator(
-                    value: 0.87,
+                    value: score,
                     strokeWidth: 8,
                     backgroundColor: theme.colorScheme.primary.withAlpha(40),
-                    valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      theme.colorScheme.primary,
+                    ),
                   ),
                 ),
-                const Text(
-                  '87%',
-                  style: TextStyle(
+                Text(
+                  '$scorePercent%',
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -121,14 +150,13 @@ class DashboardScreen extends ConsumerWidget {
                 children: [
                   const Text(
                     "Today's Success Score",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Looking great! Your schedule is optimized for safe completion.',
+                    score > 0.7
+                        ? 'Looking great! Your schedule is optimized for safe completion.'
+                        : 'Attention needed. High-risk tasks are lowering your success chance.',
                     style: TextStyle(
                       fontSize: 13,
                       color: theme.colorScheme.onSurfaceVariant,
@@ -143,13 +171,40 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTimelineSection(BuildContext context) {
+  Widget _buildTimelineSection(
+    BuildContext context,
+    List<ScheduleBlock> schedule,
+  ) {
     final theme = Theme.of(context);
-    final List<Map<String, dynamic>> items = [
-      {'time': '09:00 AM', 'title': 'DBMS Assignment', 'type': 'Focus Block', 'active': true},
-      {'time': '01:00 PM', 'title': 'Weekly Standup', 'type': 'Meeting', 'active': false},
-      {'time': '03:00 PM', 'title': 'Compiler Design Lab', 'type': 'High Risk', 'active': false},
-    ];
+
+    if (schedule.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Today's Timeline",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            elevation: 1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Center(
+                child: Text(
+                  'No schedule generated for today.\nGo to the Calendar tab to auto-plan!',
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final displayBlocks = schedule.take(3).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,23 +216,32 @@ class DashboardScreen extends ConsumerWidget {
         const SizedBox(height: 12),
         Card(
           elevation: 1,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 16.0),
             child: ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: items.length,
+              itemCount: displayBlocks.length,
               separatorBuilder: (context, index) => const Divider(indent: 72),
               itemBuilder: (context, index) {
-                final item = items[index];
+                final block = displayBlocks[index];
+                final isBreak = block.type == 'break';
+                final timeStr =
+                    '${block.startTime.hour.toString().padLeft(2, '0')}:${block.startTime.minute.toString().padLeft(2, '0')}';
+
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        item['time'],
+                        timeStr,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: theme.colorScheme.primary,
@@ -189,29 +253,41 @@ class DashboardScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              item['title'],
+                              block.title,
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                decoration: item['active'] ? null : TextDecoration.none,
+                                color:
+                                    isBreak
+                                        ? theme.colorScheme.onSurfaceVariant
+                                        : null,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                color: item['active']
-                                    ? theme.colorScheme.primary.withAlpha(30)
-                                    : theme.colorScheme.surfaceContainerHighest,
+                                color:
+                                    isBreak
+                                        ? theme.colorScheme.tertiaryContainer
+                                        : theme.colorScheme.primary.withAlpha(
+                                          30,
+                                        ),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                item['type'],
+                                isBreak ? 'Break' : 'Focus Block',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: item['active']
-                                      ? theme.colorScheme.primary
-                                      : theme.colorScheme.onSurfaceVariant,
+                                  color:
+                                      isBreak
+                                          ? theme
+                                              .colorScheme
+                                              .onTertiaryContainer
+                                          : theme.colorScheme.primary,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -230,14 +306,36 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAIRecommendations(BuildContext context) {
+  Widget _buildAIRecommendations(BuildContext context, WidgetRef ref, List<TaskEntity> tasks) {
     final theme = Theme.of(context);
+    final pendingTasks = tasks.where((t) => t.status != 'Completed').toList();
+    final highRiskCount =
+        pendingTasks.where((t) => (t.riskScore ?? 0) > 60).length;
+
+    String title = "You're all caught up!";
+    String reason =
+        "No urgent tasks are pending. Consider taking a break or planning for tomorrow.";
+
+    if (highRiskCount > 0) {
+      title = "Tackle High Risk Tasks First";
+      reason =
+          "You have $highRiskCount high-risk tasks. Delaying them further will lower your success score and cause schedule overlap.";
+    } else if (pendingTasks.isNotEmpty) {
+      title = "Steady Progress";
+      reason =
+          "You have ${pendingTasks.length} tasks remaining. Follow your generated timeline to finish them efficiently.";
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(Icons.auto_awesome, color: theme.colorScheme.primary, size: 20),
+            Icon(
+              Icons.auto_awesome,
+              color: theme.colorScheme.primary,
+              size: 20,
+            ),
             const SizedBox(width: 8),
             const Text(
               "AI Recommendation",
@@ -249,7 +347,10 @@ class DashboardScreen extends ConsumerWidget {
         Card(
           elevation: 2,
           shape: RoundedRectangleBorder(
-            side: BorderSide(color: theme.colorScheme.primary.withAlpha(80), width: 1.5),
+            side: BorderSide(
+              color: theme.colorScheme.primary.withAlpha(80),
+              width: 1.5,
+            ),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Padding(
@@ -257,61 +358,79 @@ class DashboardScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Start your DBMS assignment now.',
-                  style: TextStyle(
+                Text(
+                  title,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Reason: It requires approximately 3 hours to complete, and delaying further will overlap with your Compiler Design Lab deadline.',
-                  style: TextStyle(fontSize: 13, height: 1.4),
-                ),
+                Text(reason, style: const TextStyle(fontSize: 13, height: 1.4)),
                 const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withAlpha(30),
-                        borderRadius: BorderRadius.circular(6),
+                if (pendingTasks.isNotEmpty)
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withAlpha(30),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'Outcome: Stabilize Schedule',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                      child: const Text(
-                        'Outcome: Probability increases to 91%',
-                        style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.bold),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'Confidence: High',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: theme.colorScheme.onSecondaryContainer,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        'Confidence: High',
-                        style: TextStyle(fontSize: 11, color: theme.colorScheme.onSecondaryContainer, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text('Dismiss'),
-                    ),
+                    TextButton(onPressed: () {}, child: const Text('Dismiss')),
                     const SizedBox(width: 8),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                      onPressed: () {},
+                      onPressed: () {
+                        if (highRiskCount > 0 || pendingTasks.isNotEmpty) {
+                          ref.read(navigationIndexProvider.notifier).setIndex(1); // 1 is Tasks tab
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Plan accepted! Head over to Tasks.')),
+                          );
+                        }
+                      },
                       child: const Text('Accept Plan'),
                     ),
                   ],
@@ -324,24 +443,18 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHighRiskTasksSection(BuildContext context) {
+  Widget _buildHighRiskTasksSection(
+    BuildContext context,
+    List<TaskEntity> tasks,
+  ) {
     final theme = Theme.of(context);
-    final List<Map<String, dynamic>> highRiskTasks = [
-      {
-        'title': 'Compiler Design Lab',
-        'deadline': 'Tomorrow, 2:00 PM',
-        'probability': '38%',
-        'duration': '4h remaining',
-        'isCritical': true,
-      },
-      {
-        'title': 'DBMS Assignment',
-        'deadline': 'Today, 5:00 PM',
-        'probability': '65%',
-        'duration': '3h remaining',
-        'isCritical': false,
-      }
-    ];
+    final highRiskTasks =
+        tasks
+            .where((t) => t.status != 'Completed' && (t.riskScore ?? 0) > 40)
+            .toList()
+          ..sort((a, b) => (b.riskScore ?? 0).compareTo(a.riskScore ?? 0));
+
+    if (highRiskTasks.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,14 +467,24 @@ class DashboardScreen extends ConsumerWidget {
         ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: highRiskTasks.length,
+          itemCount: highRiskTasks.take(3).length,
           itemBuilder: (context, index) {
             final task = highRiskTasks[index];
-            final color = task['isCritical'] ? Colors.red : Colors.orange;
+            final score = task.riskScore ?? 0;
+            final color = score > 75 ? Colors.red : Colors.orange;
+
+            final deadlineStr =
+                '${task.deadline.month}/${task.deadline.day} ${task.deadline.hour.toString().padLeft(2, '0')}:${task.deadline.minute.toString().padLeft(2, '0')}';
+            final diffHours = task.deadline.difference(DateTime.now()).inHours;
+            final durationStr =
+                diffHours > 0 ? '${diffHours}h remaining' : 'Overdue';
+
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
               elevation: 1,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -372,18 +495,24 @@ class DashboardScreen extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            task['title'],
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            task.title,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: color.withAlpha(30),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            '${task['probability']} Completion',
+                            'Risk: $score%',
                             style: TextStyle(
                               fontSize: 12,
                               color: color,
@@ -403,22 +532,36 @@ class DashboardScreen extends ConsumerWidget {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.calendar_today, size: 14, color: theme.colorScheme.onSurfaceVariant),
+                            Icon(
+                              Icons.calendar_today,
+                              size: 14,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                             const SizedBox(width: 6),
                             Text(
-                              'Deadline: ${task['deadline']}',
-                              style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+                              'Deadline: $deadlineStr',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ],
                         ),
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.hourglass_empty, size: 14, color: theme.colorScheme.onSurfaceVariant),
+                            Icon(
+                              Icons.hourglass_empty,
+                              size: 14,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                             const SizedBox(width: 6),
                             Text(
-                              task['duration'],
-                              style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+                              durationStr,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ],
                         ),
