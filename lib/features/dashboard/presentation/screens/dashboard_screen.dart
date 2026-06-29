@@ -7,6 +7,7 @@ import '../../../authentication/presentation/providers/auth_provider.dart';
 import '../../tasks/presentation/providers/task_providers.dart';
 import 'package:resq_ai/ai/scheduler/scheduler_provider.dart';
 import 'package:resq_ai/ai/scheduler/scheduler_models.dart';
+import '../widgets/rescue_bottom_sheet.dart';
 import 'navigation_shell.dart';
 
 final recommendationDismissedProvider = StateProvider<bool>((ref) => false);
@@ -78,9 +79,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
 
-              // 2. Today's Success Score Card
+              // RESCUE BANNER (If score < 40%)
+              if (_calculateSuccessScore(tasks) <= 0.40)
+                _buildRescueBanner(context, tasks),
+
+              // 2. Success Score Card
               _buildSuccessScoreCard(context, tasks),
               const SizedBox(height: 24),
 
@@ -103,23 +108,88 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  double _calculateSuccessScore(List<TaskEntity> tasks) {
+    if (tasks.isEmpty) return 1.0;
+    
+    int totalTasks = tasks.length;
+    int completed = tasks.where((t) => t.status == 'Completed').length;
+    int highRisk = tasks.where((t) => (t.riskScore ?? 0) > 60).length;
+
+    double completionFactor = completed / totalTasks;
+    double riskPenalty = (highRisk / totalTasks) * 0.4; // up to 40% penalty
+
+    double score = (0.6 + (completionFactor * 0.4)) - riskPenalty;
+    if (score < 0.1) score = 0.1;
+    if (score > 1.0) score = 1.0;
+    return score;
+  }
+
+  Widget _buildRescueBanner(BuildContext context, List<TaskEntity> tasks) {
+    return GestureDetector(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (ctx) => Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            child: RescueBottomSheet(tasks: tasks),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 24),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.red.shade600,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.red.withAlpha(80),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.warning_rounded, color: Colors.white, size: 32),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '🚨 RESCUE MODE ACTIVATED',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Schedule critical. Tap to initiate emergency recovery plan.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSuccessScoreCard(BuildContext context, List<TaskEntity> tasks) {
     final theme = Theme.of(context);
-
-    double score = 1.0;
-    if (tasks.isNotEmpty) {
-      int totalTasks = tasks.length;
-      int completed = tasks.where((t) => t.status == 'Completed').length;
-      int highRisk = tasks.where((t) => (t.riskScore ?? 0) > 60).length;
-
-      double completionFactor = completed / totalTasks;
-      double riskPenalty = (highRisk / totalTasks) * 0.4; // up to 40% penalty
-
-      score = (0.6 + (completionFactor * 0.4)) - riskPenalty;
-      if (score < 0.1) score = 0.1;
-      if (score > 1.0) score = 1.0;
-    }
-
+    double score = _calculateSuccessScore(tasks);
     final scorePercent = (score * 100).toInt();
 
     return Card(
