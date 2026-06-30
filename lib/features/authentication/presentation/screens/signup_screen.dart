@@ -4,21 +4,23 @@ import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import '../../../../core/widgets/primary_button.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+class SignUpScreen extends ConsumerStatefulWidget {
+  const SignUpScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -52,9 +54,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'ResQ AI',
+                'Create an Account',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineLarge,
+                style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 48),
               TextField(
@@ -74,19 +76,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 obscureText: true,
               ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _confirmPasswordController,
+                decoration: const InputDecoration(
+                  labelText: 'Confirm Password',
+                  border: OutlineInputBorder(),
+                ),
+                obscureText: true,
+              ),
               const SizedBox(height: 24),
               if (isLoading)
                 const Center(child: CircularProgressIndicator())
               else ...[
                 PrimaryButton(
-                  label: 'Sign In with Email',
+                  label: 'Sign Up',
                   onPressed: () {
                     if (_emailController.text.isNotEmpty &&
-                        _passwordController.text.isNotEmpty) {
-                      ref.read(authControllerProvider.notifier).signInWithEmail(
+                        _passwordController.text.isNotEmpty &&
+                        _passwordController.text == _confirmPasswordController.text) {
+                      ref.read(authControllerProvider.notifier).signUpWithEmail(
                             _emailController.text,
                             _passwordController.text,
                           );
+                    } else if (_passwordController.text != _confirmPasswordController.text) {
+                       ScaffoldMessenger.of(context).showSnackBar(
+                         const SnackBar(content: Text('Passwords do not match')),
+                       );
                     }
                   },
                 ),
@@ -96,14 +112,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ref.read(authControllerProvider.notifier).signInWithGoogle();
                   },
                   icon: const Icon(Icons.login),
-                  label: const Text('Sign in with Google'),
+                  label: const Text('Sign up with Google'),
                 ),
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: () {
-                    context.go('/signup');
+                    context.go('/login');
                   },
-                  child: const Text("Don't have an account? Sign up"),
+                  child: const Text('Already have an account? Sign in'),
                 ),
               ],
             ],
